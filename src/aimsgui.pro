@@ -5,6 +5,7 @@ TEMPLATE=       subdirs
 SUBDIRS += lib
 
 PSUBDIRS	+=	\
+    aimsqtformats \
     AimsLabelSelector \
     AimsAttributedViewer
 

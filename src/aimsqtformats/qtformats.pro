@@ -1,11 +1,11 @@
 TEMPLATE	= lib
 TARGET		= aimsqtformats${BUILDMODEEXT}
 
-#!include ../../config
+#!include ../../config-local
 
 INCBDIR = aims
 
-LIBS		= $(LIBS_FOR_AIMSGUI)
+LIBS		= $(LIBS_AIMSQTFORMATS)
 
 HEADERS =			\
     io/qtformats.h		\

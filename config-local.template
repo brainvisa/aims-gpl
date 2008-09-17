@@ -17,8 +17,8 @@ CONFIG    = thread
 INCLUDEPATH = @includeBuild@
 
 LIBS			= @libDepsLine@
-LIBS_LINKED             = @libBuildLine@
-cygwin:LIBS_FOR_AIMSGUI = -Wl,--enable-auto-import
+LIBS_AIMSQTFORMATS      = @aimsdata:libBuildLine@ @qt:LibLine@
+# cygwin:LIBS_FOR_AIMSGUI = -Wl,--enable-auto-import
 
 release:BUILDMODE	= @buildMode@
 debug:BUILDMODE		= @buildMode@
