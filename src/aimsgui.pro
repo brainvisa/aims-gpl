@@ -1,6 +1,6 @@
 TEMPLATE=       subdirs
 
-#!include ../../config
+#!include ../config-local
 
 SUBDIRS += lib
 

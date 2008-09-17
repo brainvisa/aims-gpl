@@ -1,12 +1,9 @@
 TEMPLATE        = lib
 TARGET		= aimsgui${BUILDMODEEXT}
 
-#!include ../../../config
+#!include ../../config-local
 
 INCBDIR = aims
-
-LIBS		= $(LIBS_FOR_AIMSGUI)
-
 
 HEADERS = selection/labelselector.h \
     selection/labelselector_p.h \
