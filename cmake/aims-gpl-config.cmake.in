@@ -1,0 +1,28 @@
+set( aims-gpl_VERSION_MAJOR @aims-gpl_VERSION_MAJOR@ )
+set( aims-gpl_VERSION_MINOR @aims-gpl_VERSION_MINOR@ )
+set( aims-gpl_VERSION_PATCH @aims-gpl_VERSION_PATCH@ )
+set( aims-gpl_VERSION @aims-gpl_VERSION@ )
+
+find_package( aims REQUIRED )
+
+if( SOMA_BUILD_ALL_FROM_SOURCES )
+  set( AIMS-GPL_BINARY_DIR "@AIMS-GPL_BINARY_DIR@" )
+else( SOMA_BUILD_ALL_FROM_SOURCES )
+  get_filename_component( AIMS-GPL_BINARY_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH )
+  get_filename_component( AIMS-GPL_BINARY_DIR "${AIMS-GPL_BINARY_DIR}" PATH )
+  get_filename_component( AIMS-GPL_BINARY_DIR "${AIMS-GPL_BINARY_DIR}" PATH )
+endif( SOMA_BUILD_ALL_FROM_SOURCES )
+
+set( AIMS-GPL_DEFINITIONS @AIMS-GPL_DEFINITIONS@ )
+set( AIMS-GPL_INCLUDE_DIRS
+     "${AIMS-GPL_BINARY_DIR}/include"
+     ${AIMS_INCLUDE_DIRS} )
+
+find_library( AIMS-GPL_LIB aimsgui "${AIMS-GPL_BINARY_DIR}/lib" )
+set( AIMS-GPL_LIBRARIES ${AIMS_LIBRARIES} "${AIMS-GPL_LIB}" )
+
+if( AIMS-GPL_LIB )
+  set( AIMS-GPL_FOUND true )
+else( AIMS-GPL_LIB )
+  set( AIMS-GPL_FOUND false )
+endif( AIMS-GPL_LIB )
