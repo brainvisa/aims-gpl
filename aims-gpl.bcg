@@ -6,6 +6,11 @@ class AimsGPLComponent( GenericMakerModuleComponent ):
   def dependencies( self ):
     return [ AimsGuiComponent ]
 
+  def weakDependencies( self ):
+    if weakDependency( 'pyaimsgui' ):
+      return [ 'pyaimsgui' ]
+    return []
+
   def libraries( self ):
     return []
 
@@ -32,8 +37,9 @@ class AimsGuiComponent( GenericMakerComponent ):
       for x in guis:
         qt.installMacOSApp( self, prefix, os.path.join( prefix, x ), icon )
 
-#currentComponentDirectory = os.path.dirname( currentComponentFile )
-#for component in [ 'aimsgui' ]:
-  #c = options.setdefault( component, {} )
-  #c[ 'source' ] = currentComponentDirectory
-  #c[ 'version' ] = '4.0'
+#-----------------------------------------------------------------------------
+currentComponentDirectory = os.path.dirname( currentComponentFile )
+for component in [ 'pyaimsgui' ]:
+  c = options.setdefault( component, {} )
+  c[ 'source' ] = os.path.join( currentComponentDirectory, component )
+  c[ 'version' ] = '4.0'
