@@ -6,8 +6,8 @@ class PyAimsGuiComponent( GenericMakerComponent ):
   def postInit( self ):
     if not self._initialized:
       GenericMakerComponent.postInit( self )
-      source = os.path.join( self.sourceDir(), 'src', 'sip' )
-      build = os.path.join( self.componentBuildDir(), 'src', 'sip' )
+      source = os.path.join( self.sourceDir(), 'src', 'sip_gui' )
+      build = os.path.join( self.componentBuildDir(), 'src', 'sip_gui' )
       self._data[ 'sipinclude' ] = [ '-I', build, '-I', source ]
       self._data[ 'sipinclude' ] = SipComponent.sipinclude( self )
 
