@@ -7,10 +7,7 @@ class PyAimsGuiComponent( GenericMakerComponent ):
     if not self._initialized:
       GenericMakerComponent.postInit( self )
       source = os.path.join( self.sourceDir(), 'src', 'sip' )
-      if buildconfigVersion < 2.0:
-        build = os.path.join( self.buildDir(), 'src', 'sip' )
-      else:
-        build = os.path.join( self.componentBuildDir(), 'src', 'sip' )
+      build = os.path.join( self.componentBuildDir(), 'src', 'sip' )
       self._data[ 'sipinclude' ] = [ '-I', build, '-I', source ]
       self._data[ 'sipinclude' ] = SipComponent.sipinclude( self )
 
