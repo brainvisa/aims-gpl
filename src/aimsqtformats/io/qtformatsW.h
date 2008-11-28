@@ -132,6 +132,9 @@ namespace aims
   {
     int		x, y, dx = thing.dimX(), dy = thing.dimY();
     QImage	im( dx, dy, 32, 0 );
+    if( carto::DataTypeCode<T>::name()
+        == carto::DataTypeCode<AimsRGBA>::name() )
+      im.setAlphaBuffer( true );
     im.setDotsPerMeterX( (int) rint( 1000 / thing.sizeX() ) );
     im.setDotsPerMeterY( (int) rint( 1000 / thing.sizeY() ) );
     for( y=0; y<dy; ++y )
