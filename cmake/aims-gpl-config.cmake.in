@@ -18,7 +18,11 @@ set( AIMS-GPL_INCLUDE_DIRS
      "${AIMS-GPL_BINARY_DIR}/include"
      ${AIMS_INCLUDE_DIRS} )
 
-find_library( AIMS-GPL_LIB aimsgui "${AIMS-GPL_BINARY_DIR}/lib" )
+if( ${_project}_IS_COMPILED )
+  set( AIMS-GPL_LIB aimsgui )
+else( ${_project}_IS_COMPILED )
+  find_library( AIMS-GPL_LIB aimsgui "${AIMS-GPL_BINARY_DIR}/lib" )
+endif( ${_project}_IS_COMPILED )
 set( AIMS-GPL_LIBRARIES ${AIMS_LIBRARIES} "${AIMS-GPL_LIB}" )
 
 if( AIMS-GPL_LIB )

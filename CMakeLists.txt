@@ -24,7 +24,9 @@ include( CPack )
 
 SOMA_CREATE_MAIN_COMPONENTS()
 
-find_package( aims REQUIRED )
+set( ${PROJECT_NAME}_IS_COMPILED ON PARENT_SCOPE )
+
+SOMA_FIND_PACKAGE( aims REQUIRED )
 
 find_package( Qt3 REQUIRED )
 find_package( Doxygen )
