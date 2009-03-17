@@ -3,7 +3,7 @@ set( aims-gpl_VERSION_MINOR @aims-gpl_VERSION_MINOR@ )
 set( aims-gpl_VERSION_PATCH @aims-gpl_VERSION_PATCH@ )
 set( aims-gpl_VERSION @aims-gpl_VERSION@ )
 
-find_package( aims REQUIRED )
+SOMA_FIND_PACKAGE( aims REQUIRED )
 
 if( SOMA_BUILD_ALL_FROM_SOURCES )
   set( AIMS-GPL_BINARY_DIR "@AIMS-GPL_BINARY_DIR@" )
