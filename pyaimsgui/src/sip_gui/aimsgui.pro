@@ -5,5 +5,8 @@ TARGET   = aimsguisip
 
 LIBBDIR = python/soma/aims
 
+LIBS = ${SIP_GUI_LIBS}
+
 SIPS = aimsgui.sip
+
 

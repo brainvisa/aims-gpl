@@ -22,5 +22,6 @@ LIBS = @libDepsLine@
 
 SIPINCLUDE = @sipinclude@
 SIP_PLATFORM = @sip:platform@
+SIP_GUI_LIBS = @aimsgui:libLine@ @sip:libLine@
 SIP_OPTIONS = @sip:sip_options@
 
