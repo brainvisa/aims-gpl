@@ -2,7 +2,7 @@ cmake_minimum_required( VERSION 2.6 )
 
 find_package( soma-infra REQUIRED )
 
-SOMA_PROJECT( aims-gpl 4 0 0 "CEA - IFR 49" )
+SOMA_PROJECT()
 
 SOMA_FIND_PACKAGE( aims REQUIRED )
 
