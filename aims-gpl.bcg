@@ -1,48 +1,31 @@
+#print 'aims-gpl.bcg'
+#print currentComponentFile
 
-#-----------------------------------------------------------------------------
-class AimsGPLComponent( GenericMakerModuleComponent ):
+aimsgpl_modules = [ 'pyaims',  ]
+aimsgpl_weakdeps = [ 'pyaimsalgo', ]
+aimsgpl_subprojects = aimsgpl_modules + aimsgpl_weakdeps
+
+class AimsGplComponent( GenericMakerModuleComponent ):
   _name = 'aims-gpl'
 
   def dependencies( self ):
-    return [ AimsGuiComponent ]
+    global aimsgpl_modules
+    return [ 'aims-free' ] + aimsgpl_modules
 
   def weakDependencies( self ):
-    if weakDependency( 'pyaimsgui' ):
-      return [ 'pyaimsgui' ]
-    return []
+    global aimsgpl_weakdeps
+    deps = []
+    for component in aimsgpl_weakdeps:
+      if weakDependency( component ):
+        deps.append( component )
+    return deps
 
   def libraries( self ):
     return []
 
-#-----------------------------------------------------------------------------
-class AimsGuiComponent( GenericMakerComponent ):
-  _name = 'aimsgui'
-
-  def sourceName( self ):
-    return 'aims-gpl'
-
-  def dependencies( self ):
-    return [ QtComponent, 'aimsdata(aims)' ]
-    if int( self.getOption( 'fdf', 0 ) ) \
-      and weakDependency( AimsFdfComponent, self ):
-      result.append( AimsFdfComponent )
-
-  def package( self ):
-    GenericMakerComponent.package( self )
-    if systemname == 'darwin' and not x11:
-      guis = [ 'AimsAttributedViewer', 'AimsLabelSelector' ]
-      prefix = os.path.join( packageDir(), 'bin' )
-      src = self._data.get( 'sources' )
-      icon = os.path.join( self.buildDir(), self.shareDir(), 'icons', self._name + '.icns' )
-      qt = getInstance( QtComponent )
-      if not os.path.exists( icon ):
-        icon = None
-      for x in guis:
-        qt.installMacOSApp( self, prefix, os.path.join( prefix, x ), icon )
-
-#-----------------------------------------------------------------------------
 currentComponentDirectory = os.path.dirname( currentComponentFile )
-for component in [ 'pyaimsgui' ]:
+for component in aimsgpl_subprojects:
   c = options.setdefault( component, {} )
   c[ 'source' ] = os.path.join( currentComponentDirectory, component )
   c[ 'version' ] = '4.0'
+
