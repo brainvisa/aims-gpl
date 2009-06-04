@@ -16,3 +16,4 @@ TEMPLATE        = app
 
 LIBS = @libBuildLine@
 
+LIBS_AIMSFDF = @aimsfdf:libBuildLine@

@@ -23,6 +23,9 @@ class AimsGuiComponent( GenericMakerComponent ):
 
   def dependencies( self ):
     return [ QtComponent, 'aimsdata(aims)' ]
+    if int( self.getOption( 'fdf', 0 ) ) \
+      and weakDependency( AimsFdfComponent, self ):
+      result.append( AimsFdfComponent )
 
   def package( self ):
     GenericMakerComponent.package( self )
