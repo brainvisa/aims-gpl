@@ -71,11 +71,7 @@ protected:
 
 protected slots:
   void deleteSelection();
-#if QT_VERSION >= 0x040000
   void rightButtonPressed( Q3ListViewItem*, const QPoint & pos, int );
-#else
-  void rightButtonPressed( QListViewItem*, const QPoint & pos, int );
-#endif
 
 private:
   aims::gui::LabelSelector	*_labelsel;
