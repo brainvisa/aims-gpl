@@ -15,5 +15,3 @@ TEMPLATE        = app
 #!include config-local
 
 LIBS = @libBuildLine@
-
-LIBS_AIMSFDF = @aimsfdf:libBuildLine@
