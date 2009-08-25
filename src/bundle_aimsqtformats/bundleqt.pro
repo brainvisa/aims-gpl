@@ -1,12 +1,13 @@
 TEMPLATE		= bundle
 TARGET		    = aimsqtformats${BUILDMODEEXT}
 
-#!include ../../config
+#!include ../../config-local
 
 INCBDIR = aims
 
 SOURCES =			\
     bundle/qtbundle.cc
 
-LIBS	= ${LIBS_FOR_AIMSGUI}
-LIBS	+= -laimsqtformats${BUILDMODEEXT}
+LIBS	= -laimsqtformats${BUILDMODEEXT}
+LIBS    += $(LIBS_AIMSQTFORMATS)
+

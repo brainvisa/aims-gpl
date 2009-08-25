@@ -2,11 +2,12 @@ TEMPLATE=       subdirs
 
 #!include ../config-local
 
-SUBDIRS += lib
+SUBDIRS += lib \
+    aimsqtformats
+
+darwin:PSUBDIRS       += bundle_aimsqtformats
 
 PSUBDIRS	+=	\
-    aimsqtformats \
     AimsLabelSelector \
     AimsAttributedViewer
-
 
