@@ -9,7 +9,7 @@ find_package( Doxygen )
 set( AIMS-GPL_DEFINITIONS ${AIMS_DEFINITIONS} ${QT_DEFINITIONS} )
 add_definitions( ${AIMS-GPL_DEFINITIONS} )
 
-set( AIMS-GPL_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/include" ${AIMS_INCLUDE_DIRS} "${QT_INCLUDE_DIR}" )
+set( AIMS-GPL_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/include" ${AIMS-FREE_INCLUDE_DIRS} "${QT_INCLUDE_DIR}" )
 include_directories( ${AIMS-GPL_INCLUDE_DIRS} )
 
 add_subdirectory( src )
