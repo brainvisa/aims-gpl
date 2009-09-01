@@ -7,8 +7,9 @@ endif( APPLE )
 #------------------------------------------------------------------------------
 # Build targets for commands by looking into "Aims*" directories
 #------------------------------------------------------------------------------
-file( GLOB _commands "${CMAKE_CURRENT_SOURCE_DIR}/Aims*" )
-foreach( _command ${_commands} )
+#file( GLOB _commands "${CMAKE_CURRENT_SOURCE_DIR}/Aims*" )
+
+foreach( _command AimsAttributedViewer AimsLabelSelector )
   if( IS_DIRECTORY "${_command}" )
   file( GLOB _pro "${_command}/*.pro" )
   BRAINVISA_GET_FILE_LIST_FROM_PRO( "${_pro}"
