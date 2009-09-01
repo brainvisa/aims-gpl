@@ -5,7 +5,7 @@ BRAINVISA_GET_FILE_LIST_FROM_PRO(  ${CMAKE_CURRENT_SOURCE_DIR}/qtformats.pro "HE
 BRAINVISA_COPY_AND_INSTALL_HEADERS( _headers aims )
 add_library( aimsqtformats SHARED ${_sources} )
 set_property( TARGET aimsqtformats PROPERTY VERSION ${${PROJECT_NAME}_VERSION} )
-target_link_libraries( aimsqtformats ${AIMS_LIBRARIES} ${QT_LIBRARIES} )
+target_link_libraries( aimsqtformats ${AIMS-FREE_LIBRARIES} ${QT_LIBRARIES} )
 BRAINVISA_INSTALL( TARGETS aimsqtformats
               DESTINATION lib
               COMPONENT ${PROJECT_NAME} )
