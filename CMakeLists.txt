@@ -4,6 +4,9 @@ BRAINVISA_PROJECT()
 
 BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
 find_package( Qt REQUIRED )
+if( DESIRED_QT_VERSION EQUAL 4 )
+  find_package( Qt4 COMPONENTS QtCore QtGui Qt3Support REQUIRED )
+endif()
 find_package( QtVersion REQUIRED )
 find_package( Doxygen )
 
@@ -14,11 +17,13 @@ BRAINVISA_DEPENDENCY( RUN DEPENDS qt${DESIRED_QT_VERSION} RUN "= ${QT_VERSION}" 
 math( EXPR result "${DESIRED_QT_VERSION} + 1" )
 BRAINVISA_DEPENDENCY( DEV DEPENDS qt${DESIRED_QT_VERSION} DEV ">= ${DESIRED_QT_VERSION};<< ${result}" )
 
-set( AIMS-GPL_DEFINITIONS ${AIMS_DEFINITIONS} ${QT_DEFINITIONS} )
-add_definitions( ${AIMS-GPL_DEFINITIONS} )
-
-set( AIMS-GPL_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/include" ${AIMS-FREE_INCLUDE_DIRS} "${QT_INCLUDE_DIR}" )
-include_directories( ${AIMS-GPL_INCLUDE_DIRS} )
+if( DESIRED_QT_VERSION EQUAL 3 )
+  include_directories( ${QT_INCLUDE_DIR} )
+  add_definitions( ${QT_DEFINITIONS} )
+else()
+  include( "${QT_USE_FILE}" )
+endif()
+include( "${AIMS-FREE_USE_FILE}" )
 
 add_subdirectory( src )
 
