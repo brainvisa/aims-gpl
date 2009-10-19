@@ -31,10 +31,11 @@
  * knowledge of the CeCILL license version 2 and that you accept its terms.
  */
 
-#ifndef AIMS_AIMSATTRIBUTEDVIEWER_H
-#define AIMS_AIMSATTRIBUTEDVIEWER_H
+#ifndef AIMS_ATTRIBUTEDVIEW_H
+#define AIMS_ATTRIBUTEDVIEW_H
 
 #include <qobject.h>
+#include <qmainwindow.h>
 #if QT_VERSION >= 0x040000
 class Q3ListView;
 #else
@@ -43,16 +44,23 @@ typedef QListView Q3ListView;
 #endif
 
 
-class Bup : public QObject
+class AttributedView : public QMainWindow
 {
   Q_OBJECT
 
 public:
   Q3ListView	*listview;
+  AttributedView();
   void loadObject( const QString & filename );
+  void load( std::string filename );
+  virtual void closeEvent ( QCloseEvent * e );
 
 public slots:
   void loadObject();
+
+protected:
+  bool initialized;
+
 };
 
 #endif

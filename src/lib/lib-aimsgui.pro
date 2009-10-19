@@ -11,6 +11,7 @@ HEADERS = selection/labelselector.h \
     listview/orderinglist.h \
     listview/qalistview.h \
     listview/qpython.h \
+    attributedview/attributedview.h \
     plugin/aimsguiplugin.h \
     qtcompat/qaccel.h \
     qtcompat/qbutton.h \
@@ -44,6 +45,7 @@ SOURCES = qtcompat/qtoolbutton.cc \
     listview/orderinglist.cc \
     listview/qalistview.cc \
     listview/qpython.cc \
+    attributedview/attributedview.cc \
     plugin/plugin.cc \
     qtmisc/resolvesymlinks.cc
 
