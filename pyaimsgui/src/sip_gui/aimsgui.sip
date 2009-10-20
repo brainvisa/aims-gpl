@@ -1,12 +1,12 @@
 
-%Module soma.aims.aimsguisip
+// %Module soma.aims.aimsguisip
 
 %ModuleHeaderCode
 #include <aims/qtmisc/resolvesymlinks.h>
 %End
 
-%Import aims.sip
-%Import qt/qtmod.sip
+// %Import aims.sip
+// %Import qt/qtmod.sip
 
 namespace aims
 {
