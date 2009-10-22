@@ -23,3 +23,31 @@ class PyAimsGuiComponent( GenericMakerComponent ):
   #def pythonModule( self ):
     #return 'soma.aims.aimsgui'
 
+  def build( self, instances ):
+    if not self._found or self._data[ 'enabled' ] == '0':
+      return
+    # genrate SIP files from templates
+    source = os.path.join( self.sourceDir(), 'src', 'sip_gui' )
+    build = os.path.join( self.componentBuildDir(), 'src', 'sip_gui' )
+    cwd = os.getcwd()
+    os.chdir( source )
+    pyaims = getInstance( PyAimsComponent )
+    pad = os.path.join( pyaims.sourceDir(), 'src', 'sip' )
+    print 'running maketemplates:'
+    print sys.executable + ' "' \
+                + os.path.join( pad, 'maketemplates.py' ) + '" -s "' + pad \
+                + '" -t "' + os.path.join( pad, 'typessub.py' ) + '"' \
+                +' -i generatedtypes.py -c -o "' \
+                + build + '"'
+    res = os.system( sys.executable + ' "' \
+                + os.path.join( pad, 'maketemplates.py' ) + '" -s "' + pad \
+                + '" -t "' + os.path.join( pad, 'typessub.py' ) + '"' \
+                +' -i generatedtypes.py -c -o "' \
+                + build + '"' )
+    print 'res:', res
+    if res != 0:
+      raise RuntimeError( 'maketemplates.py failed: return code:' \
+        + str( res ) )
+    os.chdir( cwd )
+    # regular build
+    GenericMakerComponent.build( self, instances )
