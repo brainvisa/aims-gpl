@@ -50,7 +50,7 @@ using namespace carto;
 using namespace std;
 
 AttributedView::AttributedView() 
-  : QMainWindow()
+  : QMainWindow(), initialized(false)
 {
   this->listview = new Q3ListView( this );
   
