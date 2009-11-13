@@ -43,6 +43,9 @@
 #include <qapplication.h>
 #include <aims/qtcompat/qlistview.h>
 #include <aims/qtcompat/qpopupmenu.h>
+#if QT_VERSION >= 0x040000
+#include <QCloseEvent>
+#endif
 
 using namespace aims;
 using namespace aims::gui;
