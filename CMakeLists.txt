@@ -11,6 +11,7 @@ if( DESIRED_QT_VERSION EQUAL 4 )
 endif()
 find_package( QtVersion REQUIRED )
 find_package( Doxygen )
+find_package( PyQt${DESIRED_QT_VERSION} REQUIRED )
 
 if( DESIRED_QT_VERSION EQUAL 4 )
   BRAINVISA_DEPENDENCY( RUN DEPENDS libqtcore4 RUN ">= ${QT_VERSION}" )
@@ -37,5 +38,6 @@ endif()
 include( "${AIMS-FREE_USE_FILE}" )
 
 add_subdirectory( src )
+add_subdirectory( pyaimsgui )
 
 BRAINVISA_CREATE_CMAKE_CONFIG_FILES()
