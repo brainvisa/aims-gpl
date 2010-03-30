@@ -500,8 +500,13 @@ LabelSelector::LabelSelector( QWidget* parent, const char* name, bool modal,
   pb->setEnabled( false );
   d->modelbox = new QListBox( model );
   d->modelbox->setSelectionMode( QListBox::Extended );
+#if QT_VERSION >= 0x040000
+  connect( d->modelbox, SIGNAL( pressed( Q3ListBoxItem* ) ), this,
+           SLOT( startDragModel( Q3ListBoxItem* )) );
+#else
   connect( d->modelbox, SIGNAL( pressed( QListBoxItem* ) ), this, 
            SLOT( startDragModel( QListBoxItem* )) );
+#endif
 
   // custom panel
   QLabel	*custom = new QLabel( tr( "Not currently available\n"
@@ -792,7 +797,7 @@ void LabelSelector::activateAddPreselection()
 
 void LabelSelector::loadModel()
 {
-  QString	fname 
+  QString	fname
     = QFileDialog::getOpenFileName( QString::null, "*.arg;;*", this, 
 				    tr( "Select a model" ) );
   if( fname != QString::null )

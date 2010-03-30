@@ -91,7 +91,11 @@ namespace aims
     private slots:
       void updateHierarchyView();
       void startDrag( Q3ListViewItem*, Qt::ButtonState state );
+#if QT_VERSION >= 0x040000
+      void startDragModel( Q3ListBoxItem * );
+#else
       void startDragModel( QListBoxItem* );
+#endif
 
     private:
       LabelSelector_private	*d;
