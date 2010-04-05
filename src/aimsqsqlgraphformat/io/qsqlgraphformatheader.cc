@@ -57,10 +57,11 @@ QSqlGraphFormatHeader::~QSqlGraphFormatHeader()
 
 void QSqlGraphFormatHeader::read()
 {
-  string fileName = name();
+  string fileName = filename();
   unsigned n = 0;
-  int gid = 0;
+  vector<int> gid;
   string synt, dbtype = "QSQLITE";
+  vector<string> synts;
 
   try
   {
@@ -100,8 +101,9 @@ void QSqlGraphFormatHeader::read()
       // cout << "GRAPHS:\n";
       while( res.next() )
       {
-        gid = res.value(0).toInt();
+        gid.push_back( res.value(0).toInt() );
         synt = res.value(1).toString().utf8().data();
+        synts.push_back( synt );
         // cout << gid << ": " << synt << endl;
         ++n;
       }
@@ -122,17 +124,20 @@ void QSqlGraphFormatHeader::read()
 
   QSqlDatabase::removeDatabase( fileName.c_str() );
 
-  if( n != 1 )
+  if( n == 0 )
   {
-    cout << "database does not contain one graph\n";
-    throw invalid_format_error( "database does not contain one graph",
+    // cout << "database does not contain any graph\n";
+    throw wrong_format_error( "database does not contain any graph",
                                 fileName );
   }
   setProperty( "file_type", string( "QSqlGraph" ) );
   setProperty( "object_type", string( "Graph" ) );
   setProperty( "data_type", string( "VOID" ) );
-  setProperty( "arg_syntax", synt );
   setProperty( "graph_sql_eid", gid );
+  if( n == 1 )
+    setProperty( "arg_syntax", synt );
+  else
+    setProperty( "arg_syntax", synts );
   setProperty( "sql_database_type", dbtype );
 
   // add meta-info to header
@@ -173,3 +178,54 @@ string QSqlGraphFormatHeader::extension() const
   }
   return "";
 }
+
+
+Object QSqlGraphFormatHeader::parseUrl() const
+{
+  if( !_url.isNull() )
+    return _url;
+  Object parsed = Object::value( PropertySet() );
+  string name = _name;
+  string::size_type t = name.rfind( '?' );
+  if( t != string::npos )
+  {
+    // query part
+    string query = name.substr( t+1, name.length() - t - 1 );
+    name = name.substr( 0, t );
+    parsed->setProperty( "query", query );
+  }
+  string ext = extension();
+  string dbtype;
+  if( ext == ".sqlite" )
+  {
+    dbtype = "QSQLITE";
+  }
+  else
+  {
+    t = name.find( "://" );
+    if( t == string::npos || t == 5 && name.substr( 0, 4 ) == "file" )
+    {
+      if( t == 5 )
+        name = name.substr( 8, name.length() - 8 );
+      dbtype = "QSQLITE";
+    }
+    else
+      dbtype = "QMYSQL";
+  }
+  parsed->setProperty( "url", name );
+  parsed->setProperty( "sql_database_type", dbtype );
+
+  _url = parsed;
+
+  return parsed;
+}
+
+
+string QSqlGraphFormatHeader::filename() const
+{
+  _url = parseUrl();
+  string name;
+  _url->getProperty( "url", name );
+  return name;
+}
+

@@ -53,12 +53,16 @@ namespace aims
 
     virtual std::string extension() const;
     virtual std::set<std::string> extensions() const;
+    /// parse protocol / extension / queries in URL
+    carto::Object parseUrl() const;
+    std::string filename() const;
 
     virtual void read();
     virtual void write();
 
   private:
     std::string _name;
+    mutable carto::Object _url;
   };
 
 }

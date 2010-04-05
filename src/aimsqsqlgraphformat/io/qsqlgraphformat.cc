@@ -283,16 +283,20 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
                             carto::Object options )
 {
   Object hdr;
-  int gid = -1;
+  QSqlGraphFormatHeader *h = 0;
+  vector<int> gids;
+  int gid = -1, targetgid = -1;
+  vector<string> syntaxs;
   string syntax, sqldbtype, filename;
   try
   {
     hdr = graph.getProperty( "header" );
     graph.removeProperty( "header" );
+    h = static_cast<QSqlGraphFormatHeader *>( hdr.get() );
   }
   catch( exception & )
   {
-    QSqlGraphFormatHeader *h = new QSqlGraphFormatHeader( filename1 );
+    h = new QSqlGraphFormatHeader( filename1 );
     try
     {
       h->read();
@@ -304,10 +308,61 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
     }
     hdr = Object( static_cast<GenericObject *>( h ) );
   }
-  hdr->getProperty( "arg_syntax", syntax );
-  hdr->getProperty( "graph_sql_eid", gid );
+
+  filename = h->filename();
+  if( !hdr->getProperty( "graph_sql_eid", gids ) || gids.size() == 0 )
+    throw wrong_format_error( "database does not contain any graph",
+                              filename );
+
+  if( gids.size() == 1 )
+  {
+    hdr->getProperty( "arg_syntax", syntax );
+    syntaxs.push_back( syntax );
+  }
+  else
+  {
+    hdr->getProperty( "arg_syntax", syntaxs );
+  }
   hdr->getProperty( "sql_database_type", sqldbtype );
-  filename = static_cast<QSqlGraphFormatHeader *>( hdr.get() )->name();
+
+  // parse URL and retreive request if any
+  Object parsedurl = h->parseUrl();
+  string query;
+  parsedurl->getProperty( "query", query );
+  // simple pre-parsing
+  string::size_type t = query.find( "Graph.eid=" );
+  if( t != string::npos )
+  {
+    istringstream sst( query.substr( t + 10, query.length() - t - 10 ) );
+    sst >> targetgid;
+  }
+
+  if( targetgid >= 0 )
+  {
+    ostringstream osgid;
+    osgid << targetgid;
+    string sgid = osgid.str();
+    int i, n = gids.size();
+    for( i=0; i<n; ++i )
+      if( gids[i] == targetgid )
+        break;
+    if( i == n )
+      throw invalid_format_error( "database does not contain the requested "
+        "graph " + sgid, filename );
+    gid = targetgid;
+    if( syntaxs.size() <= i )
+      throw invalid_format_error( "graphs IDs and types mismatch", filename );
+    syntax = syntaxs[i];
+  }
+  else
+    if( gids.size() == 1 )
+    {
+      gid = gids[0];
+      syntax = syntaxs[0];
+    }
+    else
+      throw invalid_format_error( "database contains multiple graphs",
+                                  filename );
 
   ostringstream osgid;
   osgid << gid;
