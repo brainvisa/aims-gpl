@@ -125,7 +125,7 @@ namespace
 
   Object floatHelper( const QVariant & res, bool & ok )
   {
-    int value = res.toFloat( &ok );
+    float value = res.toFloat( &ok );
     if( ok )
       return Object::value( value );
     return none();
@@ -161,6 +161,43 @@ namespace
   }
 
 
+  Object pythonHelperWithSyntax( const QVariant & res, bool & ok,
+                                 const string & stype )
+  {
+    if( res.isNull() )
+    {
+      ok = false;
+      return none();
+    }
+    string value = res.toString().utf8().data();
+    ok = true;
+    istringstream sst( value );
+    SyntaxSet ss;
+    ss[ "__generic__" ][ "__fallback__" ] = Semantic( stype, false );
+    PythonReader pr( ss );
+    pr.attach( sst );
+    return pr.read( 0, "__fallback__" );
+  }
+
+
+  Object intVectorHelper( const QVariant & res, bool & ok )
+  {
+    return pythonHelperWithSyntax( res, ok, "int_vector" );
+  }
+
+
+  Object floatVectorHelper( const QVariant & res, bool & ok )
+  {
+    return pythonHelperWithSyntax( res, ok, "float_vector" );
+  }
+
+
+  Object stringVectorHelper( const QVariant & res, bool & ok )
+  {
+    return pythonHelperWithSyntax( res, ok, "string_vector" );
+  }
+
+
   Object typedValue( const QVariant & res, const string & att,
                      const vector<string> & sem, string & attname, bool & ok )
   {
@@ -176,9 +213,9 @@ namespace
       semanticTypes[ "Double()" ] = floatHelper;
       semanticTypes[ "String()" ] = stringHelper;
       semanticTypes[ "List()" ] = pythonHelper;
-      semanticTypes[ "IntVector()" ] = pythonHelper;
-      semanticTypes[ "FloatVector()" ] = pythonHelper;
-      semanticTypes[ "StringVector()" ] = pythonHelper;
+      semanticTypes[ "IntVector()" ] = intVectorHelper;
+      semanticTypes[ "FloatVector()" ] = floatVectorHelper;
+      semanticTypes[ "StringVector()" ] = stringVectorHelper;
       semanticTypes[ "Dictionary()" ] = pythonHelper;
     }
     const string & type = sem[0];
