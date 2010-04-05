@@ -8,6 +8,7 @@ SUBDIRS += lib \
 darwin:PSUBDIRS       += bundle_aimsqtformats
 
 PSUBDIRS	+=	\
+    aimsqsqlgraphformat \
     AimsLabelSelector \
     AimsAttributedViewer
 
