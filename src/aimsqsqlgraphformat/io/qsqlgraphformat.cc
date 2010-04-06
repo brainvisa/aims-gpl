@@ -125,7 +125,16 @@ namespace
 
   Object floatHelper( const QVariant & res, bool & ok )
   {
-    float value = res.toFloat( &ok );
+    float value = (float) res.toDouble( &ok );
+    if( ok )
+      return Object::value( value );
+    return none();
+  }
+
+
+  Object doubleHelper( const QVariant & res, bool & ok )
+  {
+    double value = res.toDouble( &ok );
     if( ok )
       return Object::value( value );
     return none();
@@ -210,7 +219,7 @@ namespace
     {
       semanticTypes[ "Int()" ] = intHelper;
       semanticTypes[ "Float()" ] = floatHelper;
-      semanticTypes[ "Double()" ] = floatHelper;
+      semanticTypes[ "Double()" ] = doubleHelper;
       semanticTypes[ "String()" ] = stringHelper;
       semanticTypes[ "List()" ] = pythonHelper;
       semanticTypes[ "IntVector()" ] = intVectorHelper;
