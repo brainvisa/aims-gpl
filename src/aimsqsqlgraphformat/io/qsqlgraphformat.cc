@@ -84,7 +84,7 @@ namespace
   {
     QSqlQuery res = db.exec( "SELECT soma_class, name, type, label, optional,"
       " default_value FROM soma_attributes" );
-    if( db.lastError().isValid() )
+    if( db.lastError().type() != 0 )
       throw syntax_check_error( db.lastError().text().utf8().data(),
                                 fileName );
     typedef map<string, map<string, vector<string> > > ResType;
@@ -415,7 +415,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
     }
     sql += " FROM " + syntax + " WHERE eid=" + sgid;
     QSqlQuery res = db.exec( sql.c_str() );
-    if( res.lastError().isValid() )
+    if( res.lastError().type() != 0 )
       throw wrong_format_error( res.lastError().text().utf8().data(),
                                 filename );
 
@@ -426,7 +426,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
     sql = "SELECT class_name FROM class JOIN _Vertex ON _Vertex.eid=class.eid"
       " WHERE _Vertex.graph=" + sgid + " GROUP BY class_name";
     res = db.exec( sql.c_str() );
-    if( res.lastError().isValid() )
+    if( res.lastError().type() != 0 )
       throw wrong_format_error( res.lastError().text().utf8().data(),
                                 filename );
     list<string> vtypes;
@@ -446,7 +446,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
         sql += string( ", " ) + ivat->first;
       sql += " FROM " + vt + " WHERE graph=" + sgid;
       res = db.exec( sql.c_str() );
-      if( res.lastError().isValid() )
+      if( res.lastError().type() != 0 )
         throw wrong_format_error( res.lastError().text().utf8().data(),
                                   filename );
       while( res.next() )
@@ -464,7 +464,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       "(_Vertex.eid=_Edge.vertex1 OR _Vertex.eid=_Edge.vertex2) AND "
       "_Vertex.graph=" + sgid + " GROUP BY class_name";
     res = db.exec( sql.c_str() );
-    if( res.lastError().isValid() )
+    if( res.lastError().type() != 0 )
       throw wrong_format_error( res.lastError().text().utf8().data(),
                                 filename );
     list<string> etypes;
@@ -484,7 +484,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       sql += " FROM " + et + " JOIN _Vertex WHERE (_Vertex.eid=vertex1 OR "
         "_Vertex.eid=vertex2) AND _Vertex.graph=" + sgid;
       res = db.exec( sql.c_str() );
-      if( res.lastError().isValid() )
+      if( res.lastError().type() != 0 )
         throw wrong_format_error( res.lastError().text().utf8().data(),
                                   filename );
       while( res.next() )

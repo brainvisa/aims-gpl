@@ -95,7 +95,7 @@ void QSqlGraphFormatHeader::read()
       // query available graphs in DB
       QSqlQuery res = db.exec( "SELECT Graph.eid, class.class_name FROM Graph"
         " JOIN class on class.eid=Graph.eid" );
-      if( db.lastError().isValid() )
+      if( db.lastError().type() != 0 )
         throw syntax_check_error( db.lastError().text().utf8().data(),
                                   fileName );
       // cout << "GRAPHS:\n";
