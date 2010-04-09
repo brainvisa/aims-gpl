@@ -33,6 +33,7 @@
 
 #include <aims/io/qsqlgraphformatheader.h>
 #include <cartobase/exception/ioexcept.h>
+#include <cartobase/stream/fdinhibitor.h>
 #include <qsqldatabase.h>
 #include <qsqlquery.h>
 #include <qsqlerror.h>
@@ -65,6 +66,9 @@ void QSqlGraphFormatHeader::read()
 
   try
   {
+    // avoid writing error messages about missing QtSQL plugins
+    fdinhibitor fdi( STDERR_FILENO );
+    fdi.close();
 #if QT_VERSION >= 0x040000
     QSqlDatabase db = QSqlDatabase::addDatabase( dbtype.c_str(),
                                                  fileName.c_str() );
@@ -73,6 +77,7 @@ void QSqlGraphFormatHeader::read()
                                                    fileName.c_str() );
     QSqlDatabase & db = *pdb;
 #endif
+    fdi.open();
     db.setDatabaseName( fileName.c_str() );
     bool ok = db.open();
     if( !ok )
