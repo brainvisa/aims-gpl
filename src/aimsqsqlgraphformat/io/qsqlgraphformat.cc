@@ -41,6 +41,7 @@
 #include <cartobase/object/pythonreader.h>
 #include <cartobase/object/pythonwriter.h>
 #include <cartobase/stream/fileutil.h>
+#include <cartobase/uuid/uuid.h>
 #include <qsqldatabase.h>
 #include <qsqlquery.h>
 #include <qsqlerror.h>
@@ -83,10 +84,61 @@ bool FinderQSqlGraphFormat::check( const string & filename, Finder & f ) const
 namespace
 {
 
+  void completeAttributes(
+    map<string, map<string, vector<string> > > & attributes,
+    const string & classname, const map<string, list<string> > & inherits,
+    set<string> & done )
+  {
+    if( done.find( classname ) != done.end() )
+      return;
+    done.insert( classname );
+    map<string, list<string> >::const_iterator ih = inherits.find( classname );
+    if( ih != inherits.end() )
+    {
+      const list<string> & bl = ih->second;
+      list<string>::const_reverse_iterator il, el = bl.rend();
+      map<string, vector<string> > & atts = attributes[ classname ];
+      for( il=bl.rbegin(); il!=el; ++il )
+      {
+        cout << classname << " inherits " << *il << endl;
+        completeAttributes( attributes, *il, inherits, done );
+        map<string, vector<string> > & batts = attributes[ *il ];
+        atts.insert( batts.begin(), batts.end() );
+      }
+    }
+  }
+
+
   map<string, map<string, vector<string> > > *attributesSyntax
   ( QSqlDatabase & db, const string & fileName )
   {
-    QSqlQuery res = db.exec( "SELECT soma_class, name, type, label, optional,"
+    // read inheritance map
+    QSqlQuery res = db.exec( "SELECT name, base FROM soma_classes" );
+    if( db.lastError().type() != 0 )
+      throw syntax_check_error( db.lastError().text().utf8().data(),
+                                fileName );
+    map<string, string> bases;
+    while( res.next() )
+    {
+      string base = res.value(1).toString().utf8().data();
+      if( !base.empty() )
+        bases[ res.value(0).toString().utf8().data() ] = base;
+    }
+    map<string, list<string> > inherits;
+    map<string, list<string> >::iterator ihh, ehh = inherits.end();
+    map<string, string>::iterator ih, eh = bases.end(), ih2;
+    for( ih=bases.begin(); ih!=eh; ++ih )
+    {
+      list<string> & inhd = inherits[ih->first];
+      inhd.push_back( ih->second );
+      for( ih2=bases.find( ih->second ); ih2!=eh;
+        ih2=bases.find( ih2->second ) )
+      {
+        inhd.push_back( ih2->second );
+      }
+    }
+
+    res = db.exec( "SELECT soma_class, name, type, label, optional,"
       " default_value FROM soma_attributes" );
     if( db.lastError().type() != 0 )
       throw syntax_check_error( db.lastError().text().utf8().data(),
@@ -109,7 +161,8 @@ namespace
       optional = res.value(4).toInt( &ok );
       if( !ok )
         optional = true;
-      vector<string> & sem = gt[ res.value(1).toString().utf8().data() ];
+      string classname = res.value(1).toString().utf8().data();
+      vector<string> & sem = gt[ classname ];
       sem.reserve( 4 );
       sem.push_back( res.value(2).toString().utf8().data() );
       sem.push_back( res.value(3).toString().utf8().data() );
@@ -119,6 +172,22 @@ namespace
       << sem[0] << " | " << sem[1] << " | " << sem[2] << " | " << sem[3]
       << endl; */
     }
+
+
+    // complete attributes with inherited ones
+    ResType::iterator ia, ea = attributes->end();
+    set<string> done;
+    for( ia=attributes->begin(); ia!=ea; ++ia )
+    {
+      const string & classname = ia->first;
+      ihh = inherits.find( classname );
+      if( ihh != ehh )
+      {
+        list<string>::iterator il, el = ihh->second.end();
+        completeAttributes( *attributes, classname, inherits, done );
+      }
+    }
+
     return attributes;
   }
 
@@ -290,7 +359,8 @@ namespace
       }
       catch( ... )
       {
-        if( is->second[ 2 ] == "needed" )
+        if( is->second[ 2 ] == "needed" && name != "graph"
+          && name != "vertex1" && name != "vertex2" )
           cout << "Missing mandatory attribute " << name << endl;
         continue;
       }
@@ -499,6 +569,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       vtypes.push_back( res.value(0).toString().utf8().data() );
     map<int, Vertex *> id2vertex;
 
+    cout << "vertices types: " << vtypes.size() << endl;
     // select vertices
     list<string>::iterator ivt, evt = vtypes.end();
     for( ivt=vtypes.begin(); ivt!=evt; ++ivt )
@@ -510,6 +581,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       for( ivat=vatts.begin(); ivat!=evat; ++ivat )
         sql += string( ", " ) + ivat->first;
       sql += " FROM " + vt + " WHERE graph=" + sgid;
+      cout << "vtype: " << vt << ", SQL:\n" << sql << endl;
       res = db.exec( sql.c_str() );
       if( res.lastError().type() != 0 )
         throw wrong_format_error( res.lastError().text().utf8().data(),
@@ -536,18 +608,20 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
     while( res.next() )
       etypes.push_back( res.value(0).toString().utf8().data() );
 
+    cout << "edges types: " << etypes.size() << endl;
     // select edges
     evt = etypes.end();
     for( ivt=etypes.begin(); ivt!=evt; ++ivt )
     {
       const string & et = *ivt;
       const map<string, vector<string> > & eatts = attributes[ et ];
-      sql = "SELECT vertex1, vertex2";
+      sql = string( "SELECT " ) + et + ".vertex1, " + et + ".vertex2";
       map<string, vector<string> >::const_iterator ieat, eeat = eatts.end();
       for( ieat=eatts.begin(); ieat!=eeat; ++ieat )
-        sql += string( ", " ) + ieat->first;
+        sql += string( ", " ) + et + "." + ieat->first;
       sql += " FROM " + et + " JOIN _Vertex WHERE (_Vertex.eid=vertex1 OR "
         "_Vertex.eid=vertex2) AND _Vertex.graph=" + sgid;
+      cout << "etype: " << et << ", SQL:\n" << sql << endl;
       res = db.exec( sql.c_str() );
       if( res.lastError().type() != 0 )
         throw wrong_format_error( res.lastError().text().utf8().data(),
@@ -747,8 +821,14 @@ bool QSqlGraphFormat::write( const std::string & filename1,
     // cout << "schema read\n";
 
     // write graph
-    nonconst_graph.setProperty( "name", "noname" );
-    nonconst_graph.setProperty( "side", "noside" );
+    // nonconst_graph.setProperty( "name", "noname" );
+    // nonconst_graph.setProperty( "side", "noside" );
+    string guuid;
+    if( !graph.getProperty( "uuid", guuid ) )
+    {
+      guuid = UUID().toString();
+      nonconst_graph.setProperty( "uuid", guuid );
+    }
     sql = "INSERT INTO " + graph.getSyntax() + " ( ";
     string values;
     map<string, vector<string> > & gatt = attributes[ graph.getSyntax() ];
@@ -777,14 +857,26 @@ bool QSqlGraphFormat::write( const std::string & filename1,
     ssgid << gid;
     string sgid = ssgid.str();
     map<Vertex *, int> vertex2id;
+    set<int> vertexindex;
     for( iv=graph.begin(); iv!=ev; ++iv )
     {
       Vertex *v = *iv;
+      int index = 0;
+      if( !v->getProperty( "index", index ) )
+      {
+        if( vertexindex.empty() )
+          index = 0;
+        else
+          index = *vertexindex.rbegin() + 1;
+        vertexindex.insert( index );
+        v->setProperty( "index", index );
+      }
       sql = "INSERT INTO " + v->getSyntax() + " ( graph";
       string values = sgid;
       map<string, vector<string> > & vatt = attributes[ v->getSyntax() ];
       attributesAsString( *v, vatt, sql, values, false );
       sql += string( " ) values ( " ) + values + " )";
+      // cout << "vertex SQL:\n" << sql << endl;
       res = db.exec( sql.c_str() );
       if( !res.lastError().type() == 0 )
         throw invalid_format_error( res.lastError().text().utf8().data(),
@@ -806,9 +898,20 @@ bool QSqlGraphFormat::write( const std::string & filename1,
     // write edges
 
     set<Edge *>::const_iterator ie, ee = graph.edges().end();
+    set<int> edgeindex;
     for( ie=graph.edges().begin(); ie!=ee; ++ie )
     {
       Edge *e = *ie;
+      int index = 0;
+      if( !e->getProperty( "index", index ) )
+      {
+        if( edgeindex.empty() )
+          index = 0;
+        else
+          index = *edgeindex.rbegin() + 1;
+        edgeindex.insert( index );
+        e->setProperty( "index", index );
+      }
       sql = "INSERT INTO " + e->getSyntax() + " ( vertex1, vertex2";
       Edge::const_iterator ive = e->begin();
       stringstream vids;
