@@ -10,6 +10,7 @@ LIBS            = $(LIBS_AIMSQTFORMATS)
 HEADERS =                   \
 io/qsqlgraphformat.h        \
 io/qsqlgraphformatheader.h  \
+io/qsqlgraphmanip.h         \
 plugin/qsqlgraphplugin.h
 
 SOURCES =                       \

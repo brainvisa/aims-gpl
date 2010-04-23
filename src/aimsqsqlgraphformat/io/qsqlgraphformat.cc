@@ -33,6 +33,7 @@
 
 #include <aims/io/qsqlgraphformat.h>
 #include <aims/io/qsqlgraphformatheader.h>
+#include <aims/io/qsqlgraphmanip.h>
 #include <aims/io/finder.h>
 #include <aims/io/aimsGraphR.h>
 #include <aims/io/aimsGraphW.h>
@@ -52,74 +53,6 @@ using namespace aims;
 using namespace carto;
 using namespace std;
 
-
-class QSqlGraphDatabase
-{
-public:
-  typedef std::map<std::string, std::map<std::string,
-    std::vector<std::string> > > Syntax;
-
-  struct CurrentGraphData
-  {
-    CurrentGraphData( int eid, Graph* g ) : gid( eid ), graph( g ) {}
-
-    int gid;
-    Graph* graph;
-    std::map<int, int> vertexindex2eid;
-    std::map<Vertex *, int> vertexeid;
-    std::map<int, int> edgeindex2eid;
-    std::map<Edge *, int> edgeeid;
-  };
-
-  QSqlGraphDatabase();
-  ~QSqlGraphDatabase();
-
-  void setUrl( const std::string & url,
-               carto::Object header = carto::none() );
-  bool open();
-  bool open( const std::string & user, const std::string & password );
-  void close();
-  QSqlQuery exec( const std::string & query ) const;
-  QSqlError lastError() const;
-
-  std::string hostname() const;
-  QSqlDatabase & database() const;
-  carto::rc_ptr<Syntax> attributesSyntax;
-  carto::Object header();
-  carto::Object parsedUrl();
-  void setHeader( carto::Object hdr );
-
-  bool readSchema();
-  // bool hasGraph( int eid );
-  // int findGraph( const std::string & uuid );
-  // int findGraph( Graph & );
-  // int findVertex( Vertex & );
-  // int findEdge( Edge & );
-  // int readGraphProperties( Graph & graph, int eid=-1 );
-  // int readVertexProperties( Graph & graph, Vertex & vert, int eid=-1 );
-  // int readEdgeProperties( Graph & graph, Edge & vert, int eid=-1 );
-  void updateElement( const GraphObject & el, int eid );
-  void sqlAttributes( const GraphObject & el,
-                      std::map<std::string, std::string> & atts ) const;
-  void insertOrUpdateVertex( Vertex* vert, CurrentGraphData & data );
-  void insertOrUpdateEdge( Edge* v, CurrentGraphData & data );
-  void fillGraphData( CurrentGraphData & data, Graph & g, int geid=-1 );
-  void updateVertexIndexMap( CurrentGraphData & data );
-  void updateEdgeIndexMap( CurrentGraphData & data );
-  void updateVertexMap( CurrentGraphData & data );
-  void updateEdgeMap( CurrentGraphData & data );
-
-private:
-  struct Private;
-  Private *d;
-  std::string _hostname;
-  carto::Object _header;
-  carto::Object _parsedurl;
-  mutable QSqlDatabase *_database;
-  std::string _connectionname;
-};
-
-// -----
 
 bool FinderQSqlGraphFormat::check( const string & filename, Finder & f ) const
 {
@@ -320,63 +253,6 @@ namespace
       if( ok )
         item->setProperty( attname, value );
     }
-  }
-
-
-  void attributesAsString( const GraphObject & graph,
-                           map<string, vector<string> > & gatts, string & sql,
-                           string & values, bool firstinlist = true )
-  {
-    map<string, vector<string> >::iterator is, es = gatts.end();
-    Object it = graph.objectIterator();
-    PythonWriter pw;
-    stringstream sval;
-    pw.attach( sval );
-    pw.setSingleLineMode( true );
-    for( is=gatts.begin(); is!=es; ++is )
-    {
-      Object val;
-      string name = is->first;
-      if( !is->second[ 1 ].empty() )
-        name = is->second[ 1 ];
-      try
-      {
-        val = graph.getProperty( name );
-      }
-      catch( ... )
-      {
-        if( is->second[ 2 ] == "needed" && name != "graph"
-          && name != "vertex1" && name != "vertex2" )
-          cout << "Missing mandatory attribute " << name << endl;
-        continue;
-      }
-      if( firstinlist )
-        firstinlist = false;
-      else
-      {
-        sql += ", ";
-        sval << ", ";
-      }
-      sql += is->first;
-      const string & type = is->second[ 0 ];
-      bool tostr = !( (type == "Int()") || (type == "Float()")
-        || (type=="Double()") || (val->type() == "string") );
-      if( tostr )
-      {
-        // transform into string
-        stringstream sval2;
-        pw.attach( sval2 );
-        pw.write( val, false, false ); // print 1st as string
-        // then make an Object from that string
-        Object s2 = Object::value( sval2.str() );
-        pw.attach( sval );
-        // then re-write, correctly escaping characters
-        pw.write( s2, false, false );
-      }
-      else
-        pw.write( val, false, false );
-    }
-    values += sval.str();
   }
 
 }
@@ -839,20 +715,10 @@ bool QSqlGraphFormat::write( const std::string & filename1,
 
   //(re-) read syntax in DB
   db.readSchema();
-  rc_ptr<map<string, map<string, vector<string> > > > syntaxattributes
-    = db.attributesSyntax;
-  map<string, map<string, vector<string> > > & attributes = *syntaxattributes;
 
-  // cout << "schema read\n";
-
-  QSqlGraphDatabase::CurrentGraphData gdata;
+  QSqlGraphDatabase::CurrentGraphData gdata( gid, &nonconst_graph );
   if( existinggraph )
     db.fillGraphData( gdata, nonconst_graph, gid );
-  else
-  {
-    gdata.gid = gid;
-    gdata.graph = &nonconst_graph;
-  }
 
   // write graph
   if( existinggraph )
@@ -861,9 +727,7 @@ bool QSqlGraphFormat::write( const std::string & filename1,
   {
     sql = "INSERT INTO " + graph.getSyntax() + " ( ";
     string values;
-    map<string, vector<string> > & gatt = attributes[ graph.getSyntax() ];
-    attributesAsString( graph, attributes[ "Graph" ], sql, values );
-    attributesAsString( graph, gatt, sql, values, false );
+    db.sqlAttributesAsStrings( graph, sql, values );
     sql += string( " ) values ( " ) + values + " )";
     // cout << "graph SQL: " << sql << endl;
     res = db.exec( sql );
@@ -942,30 +806,6 @@ QSqlGraphDatabase::~QSqlGraphDatabase()
 }
 
 
-inline QSqlDatabase & QSqlGraphDatabase::database() const
-{
-  return *_database;
-}
-
-
-inline carto::Object QSqlGraphDatabase::header()
-{
-  return _header;
-}
-
-
-inline carto::Object QSqlGraphDatabase::parsedUrl()
-{
-  return _parsedurl;
-}
-
-
-inline std::string QSqlGraphDatabase::hostname() const
-{
-  return _hostname;
-}
-
-
 void QSqlGraphDatabase::setHeader( const Object hdr )
 {
   _header = hdr;
@@ -988,7 +828,6 @@ void QSqlGraphDatabase::setUrl( const string & url, Object hdr )
   _connectionname = _hostname; // for now
   // parse URL and retreive request if any
   _parsedurl = h->parseUrl();
-  
 }
 
 
@@ -1030,7 +869,7 @@ bool QSqlGraphDatabase::open( const string & user, const string & password )
 }
 
 
-inline void QSqlGraphDatabase::close()
+void QSqlGraphDatabase::close()
 {
 #if QT_VERSION >= 0x040000
   if( _database->isOpen() )
@@ -1051,18 +890,6 @@ inline void QSqlGraphDatabase::close()
 }
 
 
-inline QSqlQuery QSqlGraphDatabase::exec( const std::string & query ) const
-{
-  return database().exec( query.c_str() );
-}
-
-
-inline QSqlError QSqlGraphDatabase::lastError() const
-{
-  return database().lastError();
-}
-
-
 bool QSqlGraphDatabase::readSchema()
 {
   // read inheritance map
@@ -1077,12 +904,13 @@ bool QSqlGraphDatabase::readSchema()
     if( !base.empty() )
       bases[ res.value(0).toString().utf8().data() ] = base;
   }
-  map<string, list<string> > inherits;
-  map<string, list<string> >::iterator ihh, ehh = inherits.end();
+
+  syntaxInheritance.clear();
+  map<string, list<string> >::iterator ihh, ehh = syntaxInheritance.end();
   map<string, string>::iterator ih, eh = bases.end(), ih2;
   for( ih=bases.begin(); ih!=eh; ++ih )
   {
-    list<string> & inhd = inherits[ih->first];
+    list<string> & inhd = syntaxInheritance[ih->first];
     inhd.push_back( ih->second );
     for( ih2=bases.find( ih->second ); ih2!=eh;
       ih2=bases.find( ih2->second ) )
@@ -1127,19 +955,21 @@ bool QSqlGraphDatabase::readSchema()
   }
 
 
+/*
   // complete attributes with inherited ones
   ResType::iterator ia, ea = attributes->end();
   set<string> done;
   for( ia=attributes->begin(); ia!=ea; ++ia )
   {
     const string & classname = ia->first;
-    ihh = inherits.find( classname );
+    ihh = syntaxInheritance.find( classname );
     if( ihh != ehh )
     {
       list<string>::iterator il, el = ihh->second.end();
-      completeAttributes( *attributes, classname, inherits, done );
+      completeAttributes( *attributes, classname, syntaxInheritance, done );
     }
   }
+  */
 
   attributesSyntax.reset( attributes );
   return !attributesSyntax.isNull() && !attributesSyntax->empty();
@@ -1148,37 +978,68 @@ bool QSqlGraphDatabase::readSchema()
 
 void QSqlGraphDatabase::updateElement( const GraphObject & element, int eid )
 {
-  QString sql = QString( "UPDATE " ) + element.getSyntax().c_str()
-    + " SET ";
-  map<string, string> vals;
-  sqlAttributes( element, vals );
-  bool first = true;
-  map<string, string>::iterator i, e = vals.end();
-  for( i=vals.begin(); i!=e; ++i )
+  // for now updating views is not supported in the schema, so
+  // we fill individual _fold, _Vertex tables with inheritances
+  list<string> ltables;
+  ltables.push_back( element.getSyntax() );
+  map<string, list<string> >::const_iterator
+    ih = syntaxInheritance.find( element.getSyntax() );
+  if( ih != syntaxInheritance.end() )
+    ltables.insert( ltables.end(), ih->second.begin(), ih->second.end() );
+
+  // for each table
+  list<string>::const_iterator is, es = ltables.end();
+  for( is=ltables.begin(); is!=es; ++is )
   {
-    if( first )
-      first = false;
-    else
-      sql += ", ";
-    sql += QString( i->first.c_str() ) + "=" + i->second.c_str();
+    QString sql = QString( "UPDATE _" ) + is->c_str()
+      + " SET ";
+    map<string, string> vals;
+    sqlAttributes( element, vals, false, *is );
+    bool first = true;
+    map<string, string>::iterator i, e = vals.end();
+    for( i=vals.begin(); i!=e; ++i )
+    {
+      if( first )
+        first = false;
+      else
+        sql += ", ";
+      sql += QString( i->first.c_str() ) + "=" + i->second.c_str();
+    }
+    sql += QString( " WHERE eid=" ) + QString::number( eid );
+    cout << "element update SQL: " << sql.utf8().data() << endl;
+    QSqlQuery res = database().exec( sql );
+    if( res.lastError().type() != 0 )
+    {
+      cout << "SQL error: " << res.lastError().text().utf8().data() << endl;
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  _hostname );
+    }
   }
-  sql += QString( " WHERE eid=" ) + QString::number( eid );
-  cout << "element update SQL: " << sql.utf8().data() << endl;
-  QSqlQuery res = database().exec( sql );
-  if( !res.lastError().type() == 0 )
-  {
-    cout << "SQL error: " << res.lastError().text().utf8().data() << endl;
-    throw invalid_format_error( res.lastError().text().utf8().data(),
-                                _hostname );
-  }
+
+  // TODO: what for attributes which are not listed (deleted) ?
 
 }
 
 
 void QSqlGraphDatabase::sqlAttributes( const GraphObject & element,
-                                       map<string, string> & atts ) const
+                                       map<string, string> & atts,
+                                       bool addinherited,
+                                       const string & assyntax ) const
 {
-  Syntax::const_iterator ist = attributesSyntax->find( element.getSyntax() );
+  string syntax = assyntax.empty() ? element.getSyntax() : assyntax;
+  if( addinherited )
+  {
+    map<string, list<string> >::const_iterator
+      ih = syntaxInheritance.find( syntax );
+    if( ih != syntaxInheritance.end() )
+    {
+      list<string>::const_reverse_iterator is, es = ih->second.rend();
+      for( is=ih->second.rbegin(); is!=es; ++is )
+        sqlAttributes( element, atts, false, *is );
+    }
+  }
+
+  Syntax::const_iterator ist = attributesSyntax->find( syntax );
   if( ist == attributesSyntax->end() )
     return;
 
@@ -1228,6 +1089,31 @@ void QSqlGraphDatabase::sqlAttributes( const GraphObject & element,
 }
 
 
+void QSqlGraphDatabase::sqlAttributesAsStrings( const GraphObject & element,
+                                                string & names,
+                                                string & values, bool first,
+                                                bool addinherited ) const
+{
+  map<string, string> atts;
+  sqlAttributes( element, atts, addinherited );
+  if( atts.empty() )
+    return;
+  map<string, string>::iterator ia, ea = atts.end();
+  for( ia=atts.begin(); ia!=ea; ++ia )
+  {
+    if( first )
+      first = false;
+    else
+    {
+      names += ", ";
+      values += ", ";
+    }
+    names += ia->first;
+    values += ia->second;
+  }
+}
+
+
 void QSqlGraphDatabase::fillGraphData(
   QSqlGraphDatabase::CurrentGraphData & data, Graph & g, int eid )
 {
@@ -1262,6 +1148,7 @@ void QSqlGraphDatabase::insertOrUpdateVertex( Vertex* v,
     else
       index = data.vertexindex2eid.rbegin()->first + 1;
     v->setProperty( "index", index );
+    data.vertexindex2eid[ index ] = -1;
   }
   else
   {
@@ -1275,8 +1162,7 @@ void QSqlGraphDatabase::insertOrUpdateVertex( Vertex* v,
     // cout << "insert vertex " << v << ": " << v->getSyntax() << endl;
     string sql = "INSERT INTO " + v->getSyntax() + " ( graph";
     string values = QString::number( data.gid ).utf8().data();
-    map<string, vector<string> > & vatt = (*attributesSyntax)[ v->getSyntax() ];
-    attributesAsString( *v, vatt, sql, values, false );
+    sqlAttributesAsStrings( *v, sql, values, false );
     sql += string( " ) values ( " ) + values + " )";
     // cout << "vertex SQL:\n" << sql << endl;
     QSqlQuery res = exec( sql );
@@ -1313,6 +1199,7 @@ void QSqlGraphDatabase::insertOrUpdateEdge( Edge* v,
     else
       index = data.edgeindex2eid.rbegin()->first + 1;
     v->setProperty( "index", index );
+    data.edgeindex2eid[ index ] = -1;
   }
   else
   {
@@ -1331,9 +1218,7 @@ void QSqlGraphDatabase::insertOrUpdateEdge( Edge* v,
     ++ive;
     vids << data.vertexeid[ *ive ];
     string values = vids.str();
-    map<string, vector<string> > & eatt
-      = (*attributesSyntax)[ v->getSyntax() ];
-    attributesAsString( *v, eatt, sql, values, false );
+    sqlAttributesAsStrings( *v, sql, values, false );
     sql += string( " ) values ( " ) + values + " )";
     // cout << "Edge SQL: " << sql << endl;
     QSqlQuery res = exec( sql );
