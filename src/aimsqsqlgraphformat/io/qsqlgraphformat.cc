@@ -58,6 +58,19 @@ class QSqlGraphDatabase
 public:
   typedef std::map<std::string, std::map<std::string,
     std::vector<std::string> > > Syntax;
+
+  struct CurrentGraphData
+  {
+    CurrentGraphData( int eid, Graph* g ) : gid( eid ), graph( g ) {}
+
+    int gid;
+    Graph* graph;
+    std::map<int, int> vertexindex2eid;
+    std::map<Vertex *, int> vertexeid;
+    std::map<int, int> edgeindex2eid;
+    std::map<Edge *, int> edgeeid;
+  };
+
   QSqlGraphDatabase();
   ~QSqlGraphDatabase();
 
@@ -77,17 +90,24 @@ public:
   void setHeader( carto::Object hdr );
 
   bool readSchema();
-  bool hasGraph( int eid );
-  int findGraph( const std::string & uuid );
-  int findGraph( Graph & );
-  int findVertex( Vertex & );
-  int findEdge( Edge & );
-  int readGraphProperties( Graph & graph, int eid=-1 );
-  int readVertexProperties( Graph & graph, Vertex & vert, int eid=-1 );
-  int readEdgeProperties( Graph & graph, Edge & vert, int eid=-1 );
+  // bool hasGraph( int eid );
+  // int findGraph( const std::string & uuid );
+  // int findGraph( Graph & );
+  // int findVertex( Vertex & );
+  // int findEdge( Edge & );
+  // int readGraphProperties( Graph & graph, int eid=-1 );
+  // int readVertexProperties( Graph & graph, Vertex & vert, int eid=-1 );
+  // int readEdgeProperties( Graph & graph, Edge & vert, int eid=-1 );
   void updateElement( const GraphObject & el, int eid );
   void sqlAttributes( const GraphObject & el,
                       std::map<std::string, std::string> & atts ) const;
+  void insertOrUpdateVertex( Vertex* vert, CurrentGraphData & data );
+  void insertOrUpdateEdge( Edge* v, CurrentGraphData & data );
+  void fillGraphData( CurrentGraphData & data, Graph & g, int geid=-1 );
+  void updateVertexIndexMap( CurrentGraphData & data );
+  void updateEdgeIndexMap( CurrentGraphData & data );
+  void updateVertexMap( CurrentGraphData & data );
+  void updateEdgeMap( CurrentGraphData & data );
 
 private:
   struct Private;
@@ -479,8 +499,8 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   // find graph if a SQL query is provided
   if( !graphquery.empty() )
   {
-    QSqlQuery res = db.exec( string(
-      "SELECT Graph.eid FROM Graph WHERE " ) + graphquery );
+    QSqlQuery res = db.exec( string( "SELECT eid FROM Graph WHERE " )
+      + graphquery );
     if( res.lastError().type() != 0 )
       throw invalid_format_error( string( "Graph reader, graph selection:" )
         + res.lastError().text().utf8().data(), filename );
@@ -508,6 +528,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   ostringstream osgid;
   osgid << gid;
   string sgid = osgid.str();
+  graph.setSyntax( syntax );
 
   // read syntax in DB
   db.readSchema();
@@ -593,13 +614,14 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   for( ivt=etypes.begin(); ivt!=evt; ++ivt )
   {
     const string & et = *ivt;
+    // cout << "edge type: " << et << endl;
     const map<string, vector<string> > & eatts = attributes[ et ];
     sql = string( "SELECT " ) + et + ".vertex1, " + et + ".vertex2";
     map<string, vector<string> >::const_iterator ieat, eeat = eatts.end();
     for( ieat=eatts.begin(); ieat!=eeat; ++ieat )
       sql += string( ", " ) + et + "." + ieat->first;
-    sql += " FROM " + et + " JOIN _Vertex WHERE (_Vertex.eid=vertex1 OR "
-      "_Vertex.eid=vertex2) AND _Vertex.graph=" + sgid;
+    sql += " FROM " + et + " JOIN _Vertex ON _Vertex.eid=vertex1 WHERE "
+      "_Vertex.graph=" + sgid;
     // cout << "etype: " << et << ", SQL:\n" << sql << endl;
     res = db.exec( sql );
     if( res.lastError().type() != 0 )
@@ -773,7 +795,7 @@ bool QSqlGraphFormat::write( const std::string & filename1,
     existinggraph = false;
     // check if there are any graph with the same uuid
     res = db.exec( string( "SELECT Graph.eid, class.class_name FROM Graph"
-      " JOIN class on class.eid=Graph.eid WHERE Graph.uuid='" )
+      " JOIN class ON class.eid=Graph.eid WHERE Graph.uuid='" )
       + guuid + "'" );
     if( res.lastError().type() == 0 )
     {
@@ -823,6 +845,15 @@ bool QSqlGraphFormat::write( const std::string & filename1,
 
   // cout << "schema read\n";
 
+  QSqlGraphDatabase::CurrentGraphData gdata;
+  if( existinggraph )
+    db.fillGraphData( gdata, nonconst_graph, gid );
+  else
+  {
+    gdata.gid = gid;
+    gdata.graph = &nonconst_graph;
+  }
+
   // write graph
   if( existinggraph )
     db.updateElement( graph, gid );
@@ -850,6 +881,7 @@ bool QSqlGraphFormat::write( const std::string & filename1,
     int gid = res.value(0).toInt();
     cout << "graph eid: " << gid << endl;
 
+    gdata.gid = gid;
     stringstream ssgid;
     ssgid << gid;
     sgid = ssgid.str();
@@ -858,78 +890,20 @@ bool QSqlGraphFormat::write( const std::string & filename1,
   // write vertices
 
   Graph::const_iterator iv, ev = graph.end();
-  map<Vertex *, int> vertex2id;
-  set<int> vertexindex;
   for( iv=graph.begin(); iv!=ev; ++iv )
-  {
-    Vertex *v = *iv;
-    int index = 0;
-    if( !v->getProperty( "index", index ) )
-    {
-      if( vertexindex.empty() )
-        index = 0;
-      else
-        index = *vertexindex.rbegin() + 1;
-      vertexindex.insert( index );
-      v->setProperty( "index", index );
-    }
-    sql = "INSERT INTO " + v->getSyntax() + " ( graph";
-    string values = sgid;
-    map<string, vector<string> > & vatt = attributes[ v->getSyntax() ];
-    attributesAsString( *v, vatt, sql, values, false );
-    sql += string( " ) values ( " ) + values + " )";
-    // cout << "vertex SQL:\n" << sql << endl;
-    res = db.exec( sql );
-    if( !res.lastError().type() == 0 )
-      throw invalid_format_error( res.lastError().text().utf8().data(),
-                                  filename );
-    // get vertex id
-    sql = string( "SELECT eid FROM " ) + v->getSyntax()
-      + " ORDER BY eid DESC LIMIT 1";
-    res = db.exec( sql );
-    if( !res.lastError().type() == 0 )
-      throw invalid_format_error( res.lastError().text().utf8().data(),
-                                  filename );
-    res.next();
-    int vid = res.value(0).toInt();
-    vertex2id[ v ] = vid;
-  }
+    db.insertOrUpdateVertex( *iv, gdata );
+
+  db.updateVertexIndexMap( gdata );
+  db.updateVertexMap( gdata );
 
   // cout << "vertices written\n";
 
   // write edges
 
   set<Edge *>::const_iterator ie, ee = graph.edges().end();
-  set<int> edgeindex;
+  cout << "saving edges: " << graph.edges().size() << endl;
   for( ie=graph.edges().begin(); ie!=ee; ++ie )
-  {
-    Edge *e = *ie;
-    int index = 0;
-    if( !e->getProperty( "index", index ) )
-    {
-      if( edgeindex.empty() )
-        index = 0;
-      else
-        index = *edgeindex.rbegin() + 1;
-      edgeindex.insert( index );
-      e->setProperty( "index", index );
-    }
-    sql = "INSERT INTO " + e->getSyntax() + " ( vertex1, vertex2";
-    Edge::const_iterator ive = e->begin();
-    stringstream vids;
-    vids << vertex2id[ *ive ] << ", ";
-    ++ive;
-    vids << vertex2id[ *ive ];
-    string values = vids.str();
-    map<string, vector<string> > & eatt = attributes[ e->getSyntax() ];
-    attributesAsString( *e, eatt, sql, values, false );
-    sql += string( " ) values ( " ) + values + " )";
-    // cout << "Edge SQL: " << sql << endl;
-    res = db.exec( sql );
-    if( !res.lastError().type() == 0 )
-      throw invalid_format_error( res.lastError().text().utf8().data(),
-                                  filename );
-  }
+    db.insertOrUpdateEdge( *ie, gdata );
 
   db.close();
 
@@ -1192,8 +1166,11 @@ void QSqlGraphDatabase::updateElement( const GraphObject & element, int eid )
   cout << "element update SQL: " << sql.utf8().data() << endl;
   QSqlQuery res = database().exec( sql );
   if( !res.lastError().type() == 0 )
+  {
+    cout << "SQL error: " << res.lastError().text().utf8().data() << endl;
     throw invalid_format_error( res.lastError().text().utf8().data(),
                                 _hostname );
+  }
 
 }
 
@@ -1249,4 +1226,188 @@ void QSqlGraphDatabase::sqlAttributes( const GraphObject & element,
     atts[ is->first ] = sval.str();
   }
 }
+
+
+void QSqlGraphDatabase::fillGraphData(
+  QSqlGraphDatabase::CurrentGraphData & data, Graph & g, int eid )
+{
+  data.graph = &g;
+  if( eid < 0 )
+  {
+    string uuid;
+    g.getProperty( "uuid" );
+    string sql = string( "SELECT eid FROM _Graph WHERE uuid='" ) + uuid + "'";
+    QSqlQuery res = exec( sql );
+    if( !res.lastError().type() == 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  _hostname );
+    res.next();
+    eid = res.value(0).toInt();
+    data.gid = eid;
+  }
+  data.gid = eid;
+  updateVertexIndexMap( data );
+  updateEdgeIndexMap( data );
+}
+
+
+void QSqlGraphDatabase::insertOrUpdateVertex( Vertex* v,
+                                              CurrentGraphData & data )
+{
+  int index = -1, eid = -1;
+  if( !v->getProperty( "index", index ) )
+  {
+    if( data.vertexindex2eid.empty() )
+      index = 0;
+    else
+      index = data.vertexindex2eid.rbegin()->first + 1;
+    v->setProperty( "index", index );
+  }
+  else
+  {
+    map<int, int>::iterator ii = data.vertexindex2eid.find( index );
+    if( ii != data.vertexindex2eid.end() )
+      eid = ii->second;
+  }
+  if( eid < 0 )
+  {
+    // insert
+    // cout << "insert vertex " << v << ": " << v->getSyntax() << endl;
+    string sql = "INSERT INTO " + v->getSyntax() + " ( graph";
+    string values = QString::number( data.gid ).utf8().data();
+    map<string, vector<string> > & vatt = (*attributesSyntax)[ v->getSyntax() ];
+    attributesAsString( *v, vatt, sql, values, false );
+    sql += string( " ) values ( " ) + values + " )";
+    // cout << "vertex SQL:\n" << sql << endl;
+    QSqlQuery res = exec( sql );
+    if( !res.lastError().type() == 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    // get vertex id
+/*    sql = string( "SELECT eid FROM " ) + v->getSyntax()
+      + " ORDER BY eid DESC LIMIT 1";
+    res = exec( sql );
+    if( !res.lastError().type() == 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    res.next();
+    eid = res.value(0).toInt();*/
+  }
+  else
+  {
+    // update
+    cout << "update existing vertex " << v << endl;
+    updateElement( *v, eid );
+  }
+}
+
+
+void QSqlGraphDatabase::insertOrUpdateEdge( Edge* v,
+                                            CurrentGraphData & data )
+{
+  int index = -1, eid = -1;
+  if( !v->getProperty( "index", index ) )
+  {
+    if( data.edgeindex2eid.empty() )
+      index = 0;
+    else
+      index = data.edgeindex2eid.rbegin()->first + 1;
+    v->setProperty( "index", index );
+  }
+  else
+  {
+    map<int, int>::iterator ii = data.edgeindex2eid.find( index );
+    if( ii != data.edgeindex2eid.end() )
+      eid = ii->second;
+  }
+  if( eid < 0 )
+  {
+    // insert
+    // cout << "insert edge " << v << ": " << v->getSyntax() << endl;
+    string sql = "INSERT INTO " + v->getSyntax() + " ( vertex1, vertex2";
+    Edge::const_iterator ive = v->begin();
+    stringstream vids;
+    vids << data.vertexeid[ *ive ] << ", ";
+    ++ive;
+    vids << data.vertexeid[ *ive ];
+    string values = vids.str();
+    map<string, vector<string> > & eatt
+      = (*attributesSyntax)[ v->getSyntax() ];
+    attributesAsString( *v, eatt, sql, values, false );
+    sql += string( " ) values ( " ) + values + " )";
+    // cout << "Edge SQL: " << sql << endl;
+    QSqlQuery res = exec( sql );
+    if( !res.lastError().type() == 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    // get edge id
+/*    sql = string( "SELECT eid FROM " ) + v->getSyntax()
+      + " WHERE eid>" + QString::number( previouseid ).utf8().data()
+      + " ORDER BY eid DESC LIMIT 1";
+    res = exec( sql );
+    if( !res.lastError().type() == 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    res.next();*/
+    //eid = res.value(0).toInt();
+  }
+  else
+  {
+    // update
+    cout << "update existing edge " << v << endl;
+    updateElement( *v, eid );
+  }
+}
+
+
+void QSqlGraphDatabase::updateVertexIndexMap( CurrentGraphData & data )
+{
+  QSqlQuery res
+    = database().exec( "SELECT graph_index, eid FROM _Vertex WHERE graph="
+      + QString::number( data.gid ) );
+  if( !res.lastError().type() == 0 )
+    throw invalid_format_error( res.lastError().text().utf8().data(),
+                                hostname() );
+  while( res.next() )
+    data.vertexindex2eid[ res.value(0).toInt() ] = res.value(1).toInt();
+}
+
+
+void QSqlGraphDatabase::updateEdgeIndexMap( CurrentGraphData & data )
+{
+  QSqlQuery res
+    = database().exec( "SELECT _Edge.graph_index, _Edge.eid FROM _Edge JOIN "
+      "_Vertex ON _Vertex.eid=_Edge.vertex1 WHERE _Vertex.graph="
+      + QString::number( data.gid ) );
+  if( !res.lastError().type() == 0 )
+    throw invalid_format_error( res.lastError().text().utf8().data(),
+                                hostname() );
+  while( res.next() )
+    data.edgeindex2eid[ res.value(0).toInt() ] = res.value(1).toInt();
+}
+
+
+void QSqlGraphDatabase::updateVertexMap( CurrentGraphData & data )
+{
+  Graph::const_iterator iv, ev = data.graph->end();
+  int index = -1;
+  for( iv=data.graph->begin(); iv!=ev; ++iv )
+  {
+    if( (*iv)->getProperty( "index", index ) )
+      data.vertexeid[ *iv ] = data.vertexindex2eid[ index ];
+  }
+}
+
+
+void QSqlGraphDatabase::updateEdgeMap( CurrentGraphData & data )
+{
+  set<Edge *>::const_iterator iv, ev = data.graph->edges().end();
+  int index = -1;
+  for( iv=data.graph->edges().begin(); iv!=ev; ++iv )
+  {
+    if( (*iv)->getProperty( "index", index ) )
+      data.edgeeid[ *iv ] = data.edgeindex2eid[ index ];
+  }
+}
+
 
