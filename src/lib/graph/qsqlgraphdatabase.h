@@ -65,6 +65,7 @@ namespace aims
     struct CurrentGraphData
     {
       CurrentGraphData( int eid, Graph* g ) : gid( eid ), graph( g ) {}
+      bool operator == ( const CurrentGraphData & ) const;
 
       int gid;
       Graph* graph;
@@ -219,6 +220,13 @@ namespace aims
   inline QSqlError QSqlGraphDatabase::lastError() const
   {
     return database().lastError();
+  }
+
+
+  inline bool QSqlGraphDatabase::CurrentGraphData::operator ==
+  ( const CurrentGraphData & other ) const
+  {
+    return gid == other.gid && graph == other.graph;
   }
 
 }

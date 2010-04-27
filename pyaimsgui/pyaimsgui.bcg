@@ -34,16 +34,13 @@ class PyAimsGuiComponent( GenericMakerComponent ):
     pyaims = getInstance( PyAimsComponent )
     pad = os.path.join( pyaims.sourceDir(), 'src', 'sip' )
     print 'running maketemplates:'
-    print sys.executable + ' "' \
+    cmd = sys.executable + ' "' \
                 + os.path.join( pad, 'maketemplates.py' ) + '" -s "' + pad \
                 + '" -t "' + os.path.join( pad, 'typessub.py' ) + '"' \
-                +' -i generatedtypes.py -c -o "' \
+                +' -t typessub.py -i generatedtypes.py -c -o "' \
                 + build + '"'
-    res = os.system( sys.executable + ' "' \
-                + os.path.join( pad, 'maketemplates.py' ) + '" -s "' + pad \
-                + '" -t "' + os.path.join( pad, 'typessub.py' ) + '"' \
-                +' -i generatedtypes.py -c -o "' \
-                + build + '"' )
+    print cmd
+    res = os.system( cmd )
     print 'res:', res
     if res != 0:
       raise RuntimeError( 'maketemplates.py failed: return code:' \

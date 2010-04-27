@@ -8,6 +8,9 @@
 // %Import aims.sip
 // %Import qt/qtmod.sip
 
+%Include qsqlgraphdatabase.sip
+%Include list_CurrentGraphData.sip
+
 namespace aims
 {
   bool qtResolveSymlinks();
