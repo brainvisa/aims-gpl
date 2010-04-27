@@ -33,6 +33,7 @@
 
 #include <aims/graph/qsqlgraphformatheader.h>
 #include <aims/graph/qsqlgraphdatabase.h>
+#include <aims/graph/qsqlgraphhelper.h>
 #include <aims/io/finder.h>
 #include <aims/io/aimsGraphR.h>
 #include <aims/io/aimsGraphW.h>
@@ -671,7 +672,7 @@ namespace
 }
 
 
-list<Graph *>
+list<rc_ptr<Graph> >
 QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
                                                list<CurrentGraphData> &
                                                graphsinfo,
@@ -684,7 +685,7 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
 
   list<string> atts = parseSelectionQuery( sqlquery, hostname() );
   list<string>::iterator ia, ea = atts.end();
-  int eidindex = -1, graphindex = -1, i;
+  int eidindex = -1, graphindex = -1, classnameindex = -1, i;
   for( ia=atts.begin(), i=0; ia!=ea; ++ia, ++i )
   {
     cout << *ia << ", ";
@@ -692,6 +693,8 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
       eidindex = i;
     else if( *ia == "graph" )
       graphindex = i;
+    else if( *ia == "class_name" )
+      classnameindex = i;
   }
   cout << endl;
   if( eidindex < 0 || graphindex < 0 )
@@ -704,32 +707,173 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
                                 hostname() );
 
   map<int, CurrentGraphData*>::iterator im, em = graphmap.end();
-  list<Graph *> newgraphs;
+  list<rc_ptr<Graph> > newgraphs;
+
+  map<Graph *, map<int, Vertex *> > vmap;
 
   while( res.next() )
   {
     int eid = res.value( eidindex ).toInt();
     int graph = res.value( graphindex ).toInt();
-    cout << "eid: " << eid << ", graph: " << graph << endl;
+    string classname;
+    if( classnameindex >= 0 )
+    {
+      classname = res.value( classnameindex ).toString().utf8().data();
+    }
     im = graphmap.find( graph );
+    CurrentGraphData *cg = 0;
     if( im == em )
     {
       if( allownewgraphs )
       {
+        cout << "create graph\n";
         Graph *g = new Graph;
-        newgraphs.push_back( g );
+        newgraphs.push_back( rc_ptr<Graph>( g ) );
         graphsinfo.push_back( CurrentGraphData( graph, g ) );
-        graphmap[ graph ] = &*graphsinfo.rbegin();
-        // TODO: query/ read graph syntax / attributes
-        fillGraphData( *graphsinfo.rbegin(), *g, graph );
+        cg = &*graphsinfo.rbegin();
+        graphmap[ graph ] = cg;
+        readGraphAttributes( *g, graph );
+        fillGraphData( *cg, *g, graph );
       }
       else
         continue;
     }
+    else
+      cg = im->second;
 
-    // TODO: to be continued...
+    Vertex *v = 0;
+    map<int, Vertex *> & verts = vmap[ cg->graph ];
+    if( verts.empty() )
+    {
+      // fill vertex map for this graph
+      map<Vertex*, int>::const_iterator imv, emv = cg->vertexeid.end();
+      for( imv=cg->vertexeid.begin(); imv!=emv; ++imv )
+        if( imv->second >= 0 )
+          verts[ imv->second ] = imv->first;
+    }
+    map<int, Vertex *>::iterator iv = verts.find( eid );
+    if( iv == verts.end() )
+    {
+      v = cg->graph->addVertex( classname );
+      verts[ eid ] = v;
+    }
+    else
+      v = iv->second;
+    readElementAttributes( *v, atts, res, eid );
   }
 
+  cout << "newgraphs: " << newgraphs.size() << endl;
+  cout << "graphsinfo: " << graphsinfo.size() << endl;
   return newgraphs;
 }
+
+
+void QSqlGraphDatabase::readElementAttributes( GraphObject & element,
+                                               const list<string> & attributes,
+                                               QSqlQuery & query, int eid )
+{
+  string synt = element.getSyntax();
+  if( synt.empty() )
+  {
+    // query syntax type
+    QSqlQuery res = database().exec(
+      QString( "SELECT class_name FROM class WHERE eid=" )
+      + QString::number( eid ) );
+    if( res.lastError().type() != 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    res.next();
+    if( !res.isValid() )
+      throw invalid_format_error( "eid not found in class table", hostname() );
+    synt = res.value(0).toString().utf8().data();
+    element.setSyntax( synt );
+  }
+  Syntax::const_iterator is = attributesSyntax->find( synt );
+  if( is == attributesSyntax->end() )
+    throw invalid_format_error( "syntactic type " + synt
+      + " not found in schema", hostname() );
+  const map<string, vector<string> > & sattr = is->second;
+  map<string, vector<string> >::const_iterator isa, esa = sattr.end();
+  list<string>::const_iterator ia, ea = attributes.end();
+  int i = 0;
+  for( ia=attributes.begin(); ia!=ea; ++ia, ++i )
+  {
+    const string & att = *ia;
+    isa = sattr.find( att );
+    if( isa != esa )
+    {
+      const vector<string> & sem = isa->second;
+      string attname;
+      bool ok;
+      Object value = QSqlGraphHelper::typedValue( query.value(i), att, sem,
+                                                  attname, ok );
+      if( ok )
+        element.setProperty( attname, value );
+    }
+  }
+}
+
+
+void QSqlGraphDatabase::readElementAttributes
+  ( GraphObject & item, QSqlQuery & res,
+    const map<string, vector<string> > & vatts, int i )
+{
+  map<string, vector<string> >::const_iterator ia, ea = vatts.end();
+  for( ia=vatts.begin(); ia!=ea; ++ia, ++i )
+  {
+    const string & att = ia->first;
+    const vector<string> & sem = ia->second;
+    string attname;
+    bool ok;
+    Object value = QSqlGraphHelper::typedValue( res.value(i), att, sem,
+                                                attname, ok );
+    if( ok )
+      item.setProperty( attname, value );
+  }
+}
+
+
+void QSqlGraphDatabase::readGraphAttributes( Graph & graph, int gid )
+{
+  string syntax = graph.getSyntax();
+  if( syntax.empty() )
+  {
+    // query syntax type
+    QSqlQuery res = database().exec(
+      QString( "SELECT class_name FROM class WHERE eid=" )
+      + QString::number( gid ) );
+    if( res.lastError().type() != 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    res.next();
+    if( !res.isValid() )
+      throw invalid_format_error( "eid not found in class table", hostname() );
+    syntax = res.value(0).toString().utf8().data();
+    graph.setSyntax( syntax );
+  }
+  // read graph attributes
+  typedef map<string, vector<string> > AttsOfType;
+  if( attributesSyntax.isNull() )
+    readSchema();
+  AttsOfType & gatts = (*attributesSyntax)[ syntax ];
+  string sql = "SELECT ";
+  AttsOfType::iterator ia, ea = gatts.end();
+  int x = 0;
+  for( ia=gatts.begin(); ia!=ea; ++ia, ++x )
+  {
+    if( x != 0 )
+      sql += ", ";
+    sql += ia->first;
+  }
+  sql += " FROM " + syntax + " WHERE eid="
+    + QString::number( gid ).utf8().data();
+  QSqlQuery res = exec( sql );
+  if( res.lastError().type() != 0 )
+    throw wrong_format_error( res.lastError().text().utf8().data(),
+                              hostname() );
+
+  res.next();
+  readElementAttributes( graph, res, gatts, 0 );
+}
+
 

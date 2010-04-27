@@ -14,6 +14,7 @@ HEADERS = selection/labelselector.h \
     attributedview/attributedview.h \
     graph/qsqlgraphdatabase.h \
     graph/qsqlgraphformatheader.h \
+    graph/qsqlgraphhelper.h \
     plugin/aimsguiplugin.h \
     qtcompat/qaccel.h \
     qtcompat/qbutton.h \
@@ -43,6 +44,7 @@ HEADERS = selection/labelselector.h \
 
 SOURCES = graph/qsqlgraphdatabase.cc \
     graph/qsqlgraphformatheader.cc \
+    graph/qsqlgraphhelper.cc \
     qtcompat/qtoolbutton.cc \
     selection/labelselector.cc \
     listview/editablelistviewitem.cc \

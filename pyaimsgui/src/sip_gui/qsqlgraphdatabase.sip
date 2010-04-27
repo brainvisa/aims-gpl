@@ -34,7 +34,7 @@ namespace aims
     bool open();
     bool open( const std::string & user, const std::string & password );
     void close();
-    QSqlQuery exec( const std::string & query ) const;
+    QSqlQuery exec( const std::string & query ) const /PyName=exec_/;
     QSqlError lastError() const;
 
     std::string hostname() const;
@@ -55,7 +55,7 @@ namespace aims
                                aims::QSqlGraphDatabase::CurrentGraphData & data );
     void insertOrUpdateEdge( Edge* v,
                              aims::QSqlGraphDatabase::CurrentGraphData & data );
-    list_GraphPtr
+    list_rc_ptr_Graph
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 list_CurrentGraphData & graphsinfo,
                                 bool allownewgraphs = true );

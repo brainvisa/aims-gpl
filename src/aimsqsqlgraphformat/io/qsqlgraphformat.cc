@@ -34,13 +34,12 @@
 #include <aims/io/qsqlgraphformat.h>
 #include <aims/graph/qsqlgraphformatheader.h>
 #include <aims/graph/qsqlgraphdatabase.h>
+#include <aims/graph/qsqlgraphhelper.h>
 #include <aims/io/finder.h>
 #include <aims/io/aimsGraphR.h>
 #include <aims/io/aimsGraphW.h>
 #include <aims/def/path.h>
 #include <graph/graph/graph.h>
-#include <cartobase/object/pythonreader.h>
-#include <cartobase/object/pythonwriter.h>
 #include <cartobase/stream/fileutil.h>
 #include <cartobase/stream/directory.h>
 #include <cartobase/uuid/uuid.h>
@@ -80,158 +79,6 @@ bool FinderQSqlGraphFormat::check( const string & filename, Finder & f ) const
   return true;
 }
 
-
-// ---
-
-
-namespace
-{
-
-  Object intHelper( const QVariant & res, bool & ok )
-  {
-    int value = res.toInt( &ok );
-    if( ok )
-      return Object::value( value );
-    return none();
-  }
-
-
-  Object floatHelper( const QVariant & res, bool & ok )
-  {
-    float value = (float) res.toDouble( &ok );
-    if( ok )
-      return Object::value( value );
-    return none();
-  }
-
-
-  Object doubleHelper( const QVariant & res, bool & ok )
-  {
-    double value = res.toDouble( &ok );
-    if( ok )
-      return Object::value( value );
-    return none();
-  }
-
-
-  Object stringHelper( const QVariant & res, bool & ok )
-  {
-    if( res.isNull() )
-    {
-      ok = false;
-      return none();
-    }
-    ok = true;
-    string value = res.toString().utf8().data();
-    return Object::value( value );
-  }
-
-
-  Object pythonHelper( const QVariant & res, bool & ok )
-  {
-    if( res.isNull() )
-    {
-      ok = false;
-      return none();
-    }
-    string value = res.toString().utf8().data();
-    ok = true;
-    istringstream sst( value );
-    PythonReader pr;
-    pr.attach( sst );
-    return pr.read( 0, "" );
-  }
-
-
-  Object pythonHelperWithSyntax( const QVariant & res, bool & ok,
-                                 const string & stype )
-  {
-    if( res.isNull() )
-    {
-      ok = false;
-      return none();
-    }
-    string value = res.toString().utf8().data();
-    ok = true;
-    istringstream sst( value );
-    SyntaxSet ss;
-    ss[ "__generic__" ][ "__fallback__" ] = Semantic( stype, false );
-    PythonReader pr( ss );
-    pr.attach( sst );
-    return pr.read( 0, "__fallback__" );
-  }
-
-
-  Object intVectorHelper( const QVariant & res, bool & ok )
-  {
-    return pythonHelperWithSyntax( res, ok, "int_vector" );
-  }
-
-
-  Object floatVectorHelper( const QVariant & res, bool & ok )
-  {
-    return pythonHelperWithSyntax( res, ok, "float_vector" );
-  }
-
-
-  Object stringVectorHelper( const QVariant & res, bool & ok )
-  {
-    return pythonHelperWithSyntax( res, ok, "string_vector" );
-  }
-
-
-  Object typedValue( const QVariant & res, const string & att,
-                     const vector<string> & sem, string & attname, bool & ok )
-  {
-    Object value;
-    ok = false;
-
-    typedef Object (*HelperFunc)( const QVariant &, bool & );
-    static map<string, HelperFunc> semanticTypes;
-    if( semanticTypes.empty() )
-    {
-      semanticTypes[ "Int()" ] = intHelper;
-      semanticTypes[ "Float()" ] = floatHelper;
-      semanticTypes[ "Double()" ] = doubleHelper;
-      semanticTypes[ "String()" ] = stringHelper;
-      semanticTypes[ "List()" ] = pythonHelper;
-      semanticTypes[ "IntVector()" ] = intVectorHelper;
-      semanticTypes[ "FloatVector()" ] = floatVectorHelper;
-      semanticTypes[ "StringVector()" ] = stringVectorHelper;
-      semanticTypes[ "Dictionary()" ] = pythonHelper;
-    }
-    const string & type = sem[0];
-    map<string, HelperFunc>::const_iterator ihelper
-      = semanticTypes.find( type );
-    if( ihelper != semanticTypes.end() )
-      value = ihelper->second( res, ok );
-    else
-      value = stringHelper( res, ok );
-    if( !sem[1].empty() )
-      attname = sem[1];
-    else
-      attname = att;
-    return value;
-  }
-
-
-  void fillItem( GenericObject* item, QSqlQuery & res,
-                 const map<string, vector<string> > & vatts, int i )
-  {
-    map<string, vector<string> >::const_iterator ia, ea = vatts.end();
-    for( ia=vatts.begin(); ia!=ea; ++ia, ++i )
-    {
-      const string & att = ia->first;
-      const vector<string> & sem = ia->second;
-      string attname;
-      bool ok;
-      Object value = typedValue( res.value(i), att, sem, attname, ok );
-      if( ok )
-        item->setProperty( attname, value );
-    }
-  }
-
-}
 
 // -------
 
@@ -407,7 +254,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
                               filename );
 
   res.next();
-  fillItem( &graph, res, gatts, 0 );
+  db.readElementAttributes( graph, res, gatts, 0 );
 
   // retreive vertices types
   sql = "SELECT class_name FROM class JOIN _Vertex ON _Vertex.eid=class.eid"
@@ -443,7 +290,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       Vertex *v = graph.addVertex( vt );
       int vid = res.value(0).toInt();
       id2vertex[ vid ] = v;
-      fillItem( v, res, vatts, 1 );
+      db.readElementAttributes( *v, res, vatts, 1 );
     }
   }
 
@@ -484,16 +331,9 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       Vertex *v1 = id2vertex[ res.value(0).toInt() ];
       Vertex *v2 = id2vertex[ res.value(1).toInt() ];
       Edge* e = graph.addEdge( v1, v2, et );
-      fillItem( e, res, eatts, 2 );
+      db.readElementAttributes( *e, res, eatts, 2 );
     }
   }
-
-    // FIXME: DEBUG
-  list<QSqlGraphDatabase::CurrentGraphData> gd;
-  list<Graph*> gs = db.partialReadFromVertexQuery( "SELECT eid, graph, Vertex.graph_index FROM Vertex", gd );
-  cout << "partialReadFromVertexQuery graphs: " << gs.size();
-
-
 
   db.close();
 

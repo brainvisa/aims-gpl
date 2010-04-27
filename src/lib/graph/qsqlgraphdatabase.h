@@ -31,8 +31,8 @@
 * knowledge of the CeCILL license version 2 and that you accept its terms.
 */
 
-#ifndef AIMS_IO_QSQLGRAPHDATABASE_H
-#define AIMS_IO_QSQLGRAPHDATABASE_H
+#ifndef AIMS_GRAPH_QSQLGRAPHDATABASE_H
+#define AIMS_GRAPH_QSQLGRAPHDATABASE_H
 
 #include <graph/graph/graph.h>
 #include <qsqldatabase.h>
@@ -48,6 +48,22 @@ namespace aims
       A QSqlGraphDatabase instance stores the database connection, and caches
       several needed information on the database, amongst which the database
       schema (elements inheritance and attributes).
+
+      It is useful to facilitate IO for graphs in SQL databases. It is used by
+      Reader\<Graph\> and Writer\<Graph\> for database formats. It can also be
+      used to perform partial reading on multiple graphs:
+
+      \code
+      from soma import aims
+      from soma.aims import aimsgui
+
+      db = aims.QSqlGraphDatabase()
+      db.setUrl( '/tmp/morphee2.sqlite' )
+      db.open()
+      db.readSchema()
+      lg = aims.aimsguisip.list_CurrentGraphData()
+      ng = db.partialReadFromVertexQuery( 'SELECT fold.eid, fold.graph, fold.graph_index, fold.name, fold.label, class.class_name FROM fold JOIN class ON class.eid=fold.eid WHERE fold.name=\'ventricle_left\'', lg )
+      \endcode
   */
   class QSqlGraphDatabase
   {
@@ -140,6 +156,10 @@ namespace aims
         The SQL query is executed as is, and must include eid and graph columns
         from vertices.
 
+        It is also strongly advised to also get the class_name column from the
+        class table (via a JOIN in the SQL query) because it avoids individual
+        queries for it in each vertex.
+
         Referenced graphs are queried and added to the CurrentGraphData list if
         allownewgraphs is true, otherwise vertices belonging to an "unknown"
         graph are dropped.
@@ -147,7 +167,7 @@ namespace aims
         \return a list of new graphs which have been allocated if allownewgraphs
         is true. New graphs must be deleted when not needed any longer.
     */
-    std::list<Graph *>
+    std::list<carto::rc_ptr<Graph> >
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 std::list<CurrentGraphData> & graphsinfo,
                                 bool allownewgraphs = true );
@@ -166,6 +186,18 @@ namespace aims
     void updateVertexMap( CurrentGraphData & data );
     /// Fills the CurrentGraphData edgeeid map
     void updateEdgeMap( CurrentGraphData & data );
+    /// Set the element attributes contained in the query result
+    void readElementAttributes( GraphObject &,
+                                const std::list<std::string> & attributes,
+                                QSqlQuery & query, int eid );
+    /** read/set *all* the attributes of the given element, which must have all
+        been queried in the attributes map order.
+        \param i is the index in the query of the first attribute
+    */
+    void readElementAttributes( GraphObject & item, QSqlQuery & query,
+        const std::map<std::string, std::vector<std::string> > & vatts,
+        int i );
+    void readGraphAttributes( Graph & g, int eid );
 
     /** Database schema syntax: supported attributes (database columns) for
         each element type
