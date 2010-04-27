@@ -512,6 +512,13 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
     }
   }
 
+    // FIXME: DEBUG
+  list<QSqlGraphDatabase::CurrentGraphData> gd;
+  list<Graph*> gs = db.partialReadFromVertexQuery( "SELECT eid, graph, Vertex.graph_index FROM Vertex", gd );
+  cout << "partialReadFromVertexQuery graphs: " << gs.size();
+
+
+
   db.close();
 
   // read the .data directory part
@@ -535,6 +542,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
     graph.setProperty( "aims_reader_filename", filename );
     graph.setProperty( "aims_reader_loaded_objects", int(0) );
   }
+
 
   return true;
 }
@@ -1295,4 +1303,134 @@ void QSqlGraphDatabase::updateEdgeMap( CurrentGraphData & data )
   }
 }
 
+
+namespace
+{
+
+  list<string> parseSelectionQuery( const string & sql,
+                                    const string & filename )
+  {
+    if( sql.substr( 0, 7 ) != "SELECT " )
+      throw invalid_format_error( "SQL query doesn't start by SELECT",
+                                  filename );
+    string::size_type pos = 7, n = sql.length();
+    list<string> attributes;
+    string current;
+    char c;
+    bool sep = true;
+    for( ; pos!=n; ++pos )
+    {
+      c = sql[pos];
+      if( c == ' ' || c == '\t' )
+      {
+        if( current.empty() )
+          continue;
+        else
+        {
+          attributes.push_back( current );
+          current.clear();
+          sep = false;
+        }
+      }
+      else if( c == ',' )
+      {
+        if( current.empty() )
+        {
+          if( sep )
+            throw invalid_format_error( "spurious coma", filename );
+          else
+            sep = true;
+        }
+        else
+        {
+          attributes.push_back( current );
+          current.clear();
+          sep = true;
+        }
+      }
+      else
+      {
+        if( current.empty() && !sep )
+          break;
+        current += c;
+      }
+    }
+    if( !current.empty() )
+      attributes.push_back( current );
+
+    // filter out table names
+    list<string>::iterator is, es = attributes.end();
+    for( is=attributes.begin(); is!=es; ++is )
+    {
+      pos = is->find( '.' );
+      if( pos != string::npos )
+        is->erase( 0, pos+1 );
+    }
+    return attributes;
+  }
+
+}
+
+
+list<Graph *>
+QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
+                                               list<CurrentGraphData> &
+                                               graphsinfo,
+                                               bool allownewgraphs )
+{
+  map<int, CurrentGraphData*> graphmap;
+  list<CurrentGraphData>::iterator ig, eg = graphsinfo.end();
+  for( ig=graphsinfo.begin(); ig!=eg; ++ig )
+    graphmap[ig->gid] = &*ig;
+
+  list<string> atts = parseSelectionQuery( sqlquery, hostname() );
+  list<string>::iterator ia, ea = atts.end();
+  int eidindex = -1, graphindex = -1, i;
+  for( ia=atts.begin(), i=0; ia!=ea; ++ia, ++i )
+  {
+    cout << *ia << ", ";
+    if( *ia == "eid" )
+      eidindex = i;
+    else if( *ia == "graph" )
+      graphindex = i;
+  }
+  cout << endl;
+  if( eidindex < 0 || graphindex < 0 )
+    throw invalid_format_error(
+      "SELECT request on vertices must query eid and graph", hostname() );
+
+  QSqlQuery res = exec( sqlquery );
+  if( !res.lastError().type() == 0 )
+    throw invalid_format_error( res.lastError().text().utf8().data(),
+                                hostname() );
+
+  map<int, CurrentGraphData*>::iterator im, em = graphmap.end();
+  list<Graph *> newgraphs;
+
+  while( res.next() )
+  {
+    int eid = res.value( eidindex ).toInt();
+    int graph = res.value( graphindex ).toInt();
+    cout << "eid: " << eid << ", graph: " << graph << endl;
+    im = graphmap.find( graph );
+    if( im == em )
+    {
+      if( allownewgraphs )
+      {
+        Graph *g = new Graph;
+        newgraphs.push_back( g );
+        graphsinfo.push_back( CurrentGraphData( graph, g ) );
+        graphmap[ graph ] = &*graphsinfo.rbegin();
+        // TODO: query/ read graph syntax / attributes
+        fillGraphData( *graphsinfo.rbegin(), *g, graph );
+      }
+      else
+        continue;
+    }
+
+    // TODO: to be continued...
+  }
+
+  return newgraphs;
+}
 
