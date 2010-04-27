@@ -31,7 +31,7 @@
  * knowledge of the CeCILL license version 2 and that you accept its terms.
  */
 
-#include <aims/io/qsqlgraphformatheader.h>
+#include <aims/graph/qsqlgraphformatheader.h>
 #include <cartobase/exception/ioexcept.h>
 #include <cartobase/stream/fdinhibitor.h>
 #include <qsqldatabase.h>

@@ -31,8 +31,8 @@
  * knowledge of the CeCILL license version 2 and that you accept its terms.
  */
 
-#ifndef AIMS_IO_QSQLGRAPHFORMATHEADER_H
-#define AIMS_IO_QSQLGRAPHFORMATHEADER_H
+#ifndef AIMS_GRAPH_QSQLGRAPHFORMATHEADER_H
+#define AIMS_GRAPH_QSQLGRAPHFORMATHEADER_H
 
 #include <aims/data/sliceformatheader.h>
 #include <aims/def/general.h>

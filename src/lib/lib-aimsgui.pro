@@ -12,6 +12,8 @@ HEADERS = selection/labelselector.h \
     listview/qalistview.h \
     listview/qpython.h \
     attributedview/attributedview.h \
+    graph/qsqlgraphdatabase.h \
+    graph/qsqlgraphformatheader.h \
     plugin/aimsguiplugin.h \
     qtcompat/qaccel.h \
     qtcompat/qbutton.h \
@@ -39,7 +41,9 @@ HEADERS = selection/labelselector.h \
     qtcompat/qwidgetlist.h \
     qtmisc/resolvesymlinks.h
 
-SOURCES = qtcompat/qtoolbutton.cc \
+SOURCES = graph/qsqlgraphdatabase.cc \
+    graph/qsqlgraphformatheader.cc \
+    qtcompat/qtoolbutton.cc \
     selection/labelselector.cc \
     listview/editablelistviewitem.cc \
     listview/orderinglist.cc \

@@ -31,8 +31,8 @@
 * knowledge of the CeCILL license version 2 and that you accept its terms.
 */
 
-#ifndef AIMS_IO_QSQLGRAPHMANIP_H
-#define AIMS_IO_QSQLGRAPHMANIP_H
+#ifndef AIMS_IO_QSQLGRAPHDATABASE_H
+#define AIMS_IO_QSQLGRAPHDATABASE_H
 
 #include <graph/graph/graph.h>
 #include <qsqldatabase.h>

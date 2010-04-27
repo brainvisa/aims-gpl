@@ -5,17 +5,14 @@ TARGET          = aimsqsqlgraphformat${BUILDMODEEXT}
 
 INCBDIR = aims
 
-LIBS            = $(LIBS_AIMSQTFORMATS)
+LIBS            = $(LIBS_PLUGINS)
 
 HEADERS =                   \
 io/qsqlgraphformat.h        \
-io/qsqlgraphformatheader.h  \
-io/qsqlgraphmanip.h         \
 plugin/qsqlgraphplugin.h
 
 SOURCES =                       \
 io/qsqlgraphformat.cc           \
-io/qsqlgraphformatheader.cc     \
 plugin/qsqlgraphplugin.cc
 
 

@@ -18,6 +18,7 @@ INCLUDEPATH = @includeBuild@
 
 LIBS			= @libDepsLine@
 LIBS_AIMSQTFORMATS      = @aimsdata:libBuildLine@ @qt:libLine@
+LIBS_PLUGINS            = @libBuildLine@
 # cygwin:LIBS_FOR_AIMSGUI = -Wl,--enable-auto-import
 
 release:BUILDMODE	= @buildMode@
