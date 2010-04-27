@@ -41,7 +41,6 @@
 
 namespace aims
 {
-  class QSqlGraphFormatReader;
 
   class QSqlGraphFormatHeader : public PythonHeader
   {
