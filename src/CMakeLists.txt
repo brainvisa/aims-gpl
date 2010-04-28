@@ -1,5 +1,6 @@
 add_subdirectory( lib )
 add_subdirectory( aimsqtformats )
+add_subdirectory( aimsqsqlgraphformat )
 if( APPLE )
   add_subdirectory( bundle_aimsqtformats )
 endif( APPLE )

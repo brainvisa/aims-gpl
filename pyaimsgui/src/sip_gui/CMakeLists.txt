@@ -3,11 +3,21 @@ BRAINVISA_COPY_FILES( ${PROJECT_NAME}-devel "${CMAKE_CURRENT_SOURCE_DIR}/aimsgui
                       DESTINATION "${AIMS_RELATIVE_SIP_DIRECTORY}" 
                       IMMEDIATE )
 
+# Copy typessub.py as  typessub_pyaimsgui.py name to avoid erasing the one from pyaims
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/typessub.py"
+                "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub_pyaimsgui.py"
+                COPYONLY )
+BRAINVISA_INSTALL( PROGRAMS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub_pyaimsgui.py"
+                   DESTINATION "${AIMS_RELATIVE_SIP_DIRECTORY}"
+                   COMPONENT ${PROJECT_NAME}-devel )
+
 exec_program( ${PYTHON_EXECUTABLE}
   ARGS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/maketemplates.py"
         -i "${CMAKE_CURRENT_SOURCE_DIR}/generatedtypes.py"
         -p "${CMAKE_CURRENT_SOURCE_DIR}"
         -o "${AIMS-FREE_SIP_DIRECTORY}"
+        -t "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub.py"
+        -t "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub_pyaimsgui.py"
         -l
         -m "${QT_MOC_EXECUTABLE}"
   OUTPUT_VARIABLE _generatedSipFileList 
