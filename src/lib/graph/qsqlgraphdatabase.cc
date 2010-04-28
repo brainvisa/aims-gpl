@@ -555,9 +555,11 @@ void QSqlGraphDatabase::insertOrUpdateEdge( Edge* v,
 
 void QSqlGraphDatabase::updateVertexIndexMap( CurrentGraphData & data )
 {
+  cout << "updateVertexIndexMap query\n";
   QSqlQuery res
     = database().exec( "SELECT graph_index, eid FROM _Vertex WHERE graph="
       + QString::number( data.gid ) );
+  cout << "query done\n";
   if( !res.lastError().type() == 0 )
     throw invalid_format_error( res.lastError().text().utf8().data(),
                                 hostname() );
@@ -568,10 +570,12 @@ void QSqlGraphDatabase::updateVertexIndexMap( CurrentGraphData & data )
 
 void QSqlGraphDatabase::updateEdgeIndexMap( CurrentGraphData & data )
 {
+  cout << "updateEdgeIndexMap query\n";
   QSqlQuery res
     = database().exec( "SELECT _Edge.graph_index, _Edge.eid FROM _Edge JOIN "
       "_Vertex ON _Vertex.eid=_Edge.vertex1 WHERE _Vertex.graph="
       + QString::number( data.gid ) );
+  cout << "query done\n";
   if( !res.lastError().type() == 0 )
     throw invalid_format_error( res.lastError().text().utf8().data(),
                                 hostname() );
@@ -733,7 +737,6 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
         cg = &*graphsinfo.rbegin();
         graphmap[ graph ] = cg;
         readGraphAttributes( *g, graph );
-        fillGraphData( *cg, *g, graph );
       }
       else
         continue;
@@ -756,6 +759,7 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
     {
       v = cg->graph->addVertex( classname );
       verts[ eid ] = v;
+      cg->vertexeid[ v ] = eid;
     }
     else
       v = iv->second;
