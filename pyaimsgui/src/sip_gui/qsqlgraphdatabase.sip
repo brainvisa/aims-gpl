@@ -59,6 +59,10 @@ namespace aims
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 list_CurrentGraphData & graphsinfo,
                                 bool allownewgraphs = true );
+    list_rc_ptr_Graph
+    partialReadFromEdgeQuery( const std::string & sqlquery,
+                              list_CurrentGraphData & graphsinfo,
+                              bool allownewgraphs = true );
 
     void updateElement( const GraphObject & el, int eid );
     void fillGraphData( aims::QSqlGraphDatabase::CurrentGraphData & data,

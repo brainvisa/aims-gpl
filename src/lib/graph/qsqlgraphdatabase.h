@@ -171,6 +171,28 @@ namespace aims
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 std::list<CurrentGraphData> & graphsinfo,
                                 bool allownewgraphs = true );
+    /** Reads information from a given SQL selection query, and fills
+        edge information from it.
+
+        The SQL query is executed as is, and must include eid, vertex1 and
+        vertex2 from edges.
+
+        It is also strongly advised to also get the class_name column from the
+        class table (via a JOIN in the SQL query) because it avoids individual
+        queries for it in each edge, and if possible the graph eid (via a JOIN
+        on the vertices in ths SQL query).
+
+        Referenced graphs /vertices are queried and added to the
+        CurrentGraphData list if allownewgraphs is true, otherwise edges
+        belonging to an "unknown" graph are dropped.
+
+        \return a list of new graphs which have been allocated if allownewgraphs
+        is true. New graphs must be deleted when not needed any longer.
+    */
+    std::list<carto::rc_ptr<Graph> >
+    partialReadFromEdgeQuery( const std::string & sqlquery,
+                              std::list<CurrentGraphData> & graphsinfo,
+                              bool allownewgraphs = true );
 
     /** Store in the database the attributes of an existing element (graph,
     vertex or edge) */
