@@ -53,6 +53,8 @@ namespace aims
       Reader\<Graph\> and Writer\<Graph\> for database formats. It can also be
       used to perform partial reading on multiple graphs:
 
+      (the example is in python language, it is just a bit clearer)
+
       \code
       from soma import aims
       from soma.aims import aimsgui
@@ -62,7 +64,10 @@ namespace aims
       db.open()
       db.readSchema()
       lg = aims.aimsguisip.list_CurrentGraphData()
-      ng = db.partialReadFromVertexQuery( 'SELECT fold.eid, fold.graph, fold.graph_index, fold.name, fold.label, class.class_name FROM fold JOIN class ON class.eid=fold.eid WHERE fold.name=\'ventricle_left\'', lg )
+      ng = db.partialReadFromVertexQuery( 'SELECT fold.eid, fold.graph, ' \
+        'fold.graph_index, fold.name, fold.label, class.class_name FROM fold ' \
+        'JOIN class ON class.eid=fold.eid WHERE fold.name=\'ventricle_left\'',
+        lg )
       \endcode
   */
   class QSqlGraphDatabase
@@ -101,7 +106,10 @@ namespace aims
         The url may contain an initial selection query, to restrict to a given
         single graph, especially for Reader\<Graph\> operations.
 
-        \example /home/totor/mysqlgraphs.sqlite?Graph.uuid='259049f8-e93c-095d-064f-fad19a73dc0a'
+        \code
+        db.setUrl( "/home/totor/mysqlgraphs.sqlite?Graph.uuid="
+          "'259049f8-e93c-095d-064f-fad19a73dc0a'" );
+        \endcode
     */
     void setUrl( const std::string & url,
                  carto::Object header = carto::none() );
@@ -166,6 +174,21 @@ namespace aims
 
         \return a list of new graphs which have been allocated if allownewgraphs
         is true. New graphs must be deleted when not needed any longer.
+
+        for instance:
+        \code
+        // classes will be queried separately
+        ng = db.partialReadFromVertexQuery( 'SELECT fold.eid, fold.graph,
+          fold.graph_index, fold.name, fold.label, class.class_name FROM fold
+          JOIN class ON class.eid=fold.eid WHERE fold.name=\'ventricle_left\'',
+          lg );
+
+        // here classes are part of the same query, which will avoid
+        // additional queries
+        ng = db.partialReadFromVertexQuery( 'SELECT fold.eid, fold.graph,
+          fold.graph_index, fold.name, fold.label, class.class_name FROM fold
+          JOIN class ON class.eid=fold.eid', lg );
+        \endcode
     */
     std::list<carto::rc_ptr<Graph> >
     partialReadFromVertexQuery( const std::string & sqlquery,
@@ -188,6 +211,22 @@ namespace aims
 
         \return a list of new graphs which have been allocated if allownewgraphs
         is true. New graphs must be deleted when not needed any longer.
+
+        for instance:
+        \code
+        // graphs will be queried separately
+        ng = db.partialReadFromEdgeQuery( 'SELECT cortical.eid,
+        cortical.vertex1, cortical.vertex2, cortical.size, class.class_name FROM
+        cortical JOIN class ON class.eid=cortical.eid WHERE cortical.size > 50',
+        lg )
+
+        // here graph info is part of the same query
+        ng = db.partialReadFromEdgeQuery( 'SELECT cortical.eid,
+        cortical.vertex1, cortical.vertex2, cortical.size, class.class_name,
+        _Vertex.graph FROM cortical JOIN class, _Vertex ON
+        class.eid=cortical.eid AND _Vertex.eid=cortical.vertex1 WHERE
+        cortical.size > 50', lg )
+        \endcode
     */
     std::list<carto::rc_ptr<Graph> >
     partialReadFromEdgeQuery( const std::string & sqlquery,
