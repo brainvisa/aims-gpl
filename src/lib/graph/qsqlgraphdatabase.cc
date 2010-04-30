@@ -1066,24 +1066,24 @@ void QSqlGraphDatabase::readGraphAttributes( Graph & graph, int gid )
   if( attributesSyntax.isNull() )
     readSchema();
   AttsOfType & gatts = (*attributesSyntax)[ syntax ];
-  string sql = "SELECT ";
+  string sql = "SELECT uuid";
   AttsOfType::iterator ia, ea = gatts.end();
-  int x = 0;
-  for( ia=gatts.begin(); ia!=ea; ++ia, ++x )
+  for( ia=gatts.begin(); ia!=ea; ++ia )
   {
-    if( x != 0 )
-      sql += ", ";
+    sql += ", ";
     sql += ia->first;
   }
   sql += " FROM " + syntax + " WHERE eid="
     + QString::number( gid ).utf8().data();
+  // cout << "graph SQL: " << sql << endl;
   QSqlQuery res = exec( sql );
   if( res.lastError().type() != 0 )
     throw wrong_format_error( res.lastError().text().utf8().data(),
                               hostname() );
 
   res.next();
-  readElementAttributes( graph, res, gatts, 0 );
+  graph.setProperty( "uuid", string( res.value(0).toString().utf8().data() ) );
+  readElementAttributes( graph, res, gatts, 1 );
 }
 
 
