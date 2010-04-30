@@ -714,6 +714,7 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
   list<rc_ptr<Graph> > newgraphs;
 
   map<Graph *, map<int, Vertex *> > vmap;
+  list<CurrentGraphData> graphstoread;
 
   while( res.next() )
   {
@@ -736,7 +737,7 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
         graphsinfo.push_back( CurrentGraphData( graph, g ) );
         cg = &*graphsinfo.rbegin();
         graphmap[ graph ] = cg;
-        readGraphAttributes( *g, graph );
+        graphstoread.push_back( *cg );
       }
       else
         continue;
@@ -765,6 +766,7 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
       v = iv->second;
     readElementAttributes( *v, atts, res, eid );
   }
+  readGraphAttributes( graphstoread );
 
   cout << "newgraphs: " << newgraphs.size() << endl;
   cout << "graphsinfo: " << graphsinfo.size() << endl;
@@ -818,6 +820,7 @@ QSqlGraphDatabase::partialReadFromEdgeQuery( const string & sqlquery,
   map<Graph *, map<int, Vertex *> > vmap;
   map<Graph *, map<int, Edge *> > emap;
   map<int, CurrentGraphData *> v2g;
+  list<CurrentGraphData> graphstoread;
 
   if( graphindex < 0 )
   {
@@ -865,7 +868,7 @@ QSqlGraphDatabase::partialReadFromEdgeQuery( const string & sqlquery,
           graphsinfo.push_back( CurrentGraphData( graph, g ) );
           cg = &*graphsinfo.rbegin();
           graphmap[ graph ] = cg;
-          readGraphAttributes( *g, graph );
+          graphstoread.push_back( *cg );
         }
         else
           continue;
@@ -902,7 +905,7 @@ QSqlGraphDatabase::partialReadFromEdgeQuery( const string & sqlquery,
           graphsinfo.push_back( CurrentGraphData( graph, g ) );
           cg = &*graphsinfo.rbegin();
           graphmap[ graph ] = cg;
-          readGraphAttributes( *g, graph );
+          graphstoread.push_back( *cg );
         }
         else
           continue;
@@ -971,6 +974,7 @@ QSqlGraphDatabase::partialReadFromEdgeQuery( const string & sqlquery,
 
     readElementAttributes( *e, atts, res, eid );
   }
+  readGraphAttributes( graphstoread );
 
   cout << "newgraphs: " << newgraphs.size() << endl;
   cout << "graphsinfo: " << graphsinfo.size() << endl;
@@ -1084,6 +1088,96 @@ void QSqlGraphDatabase::readGraphAttributes( Graph & graph, int gid )
   res.next();
   graph.setProperty( "uuid", string( res.value(0).toString().utf8().data() ) );
   readElementAttributes( graph, res, gatts, 1 );
+}
+
+
+void QSqlGraphDatabase::readGraphAttributes
+  ( list<CurrentGraphData> & graphsinfo )
+{
+  list<CurrentGraphData>::iterator igd, egd = graphsinfo.end();
+  QString sql = "SELECT class_name, eid FROM class WHERE eid IN ( ";
+  map<string, list<int> > type2eid;
+  list<int> unknowntypes;
+  map<int, CurrentGraphData *> graphmap;
+  string syntax;
+  for( igd=graphsinfo.begin(); igd!=egd; ++igd )
+  {
+    CurrentGraphData & cg = *igd;
+    graphmap[ cg.gid ] = &cg;
+    Graph *graph = cg.graph;
+    syntax = graph->getSyntax();
+    if( syntax.empty() )
+    {
+      if( unknowntypes.empty() )
+        sql += QString::number( cg.gid );
+      else
+        sql += ", " + QString::number( cg.gid );
+      unknowntypes.push_back( cg.gid );
+    }
+    else
+      type2eid[ syntax ].push_back( cg.gid );
+  }
+  if( !unknowntypes.empty() )
+  {
+    sql += " )";
+    // cout << "graphs types query: " << sql.utf8().data() << endl;
+    QSqlQuery res = database().exec( sql );
+    if( res.lastError().type() != 0 )
+      throw invalid_format_error( res.lastError().text().utf8().data(),
+                                  hostname() );
+    while( res.next() )
+    {
+      syntax = res.value(0).toString().utf8().data();
+      int eid = res.value(1).toInt();
+      // cout << eid << ": " << syntax << endl;
+      type2eid[ syntax ].push_back( eid );
+      graphmap[ eid ]->graph->setSyntax( syntax );
+    }
+  }
+
+  // for each different type
+  map<string, list<int> >::iterator it, et = type2eid.end();
+  for( it=type2eid.begin(); it!=et; ++it )
+  {
+    syntax = it->first;
+    // read graphs attributes
+    typedef map<string, vector<string> > AttsOfType;
+    if( attributesSyntax.isNull() )
+      readSchema();
+    AttsOfType & gatts = (*attributesSyntax)[ syntax ];
+    QString sql = "SELECT eid, uuid";
+    AttsOfType::iterator ia, ea = gatts.end();
+    for( ia=gatts.begin(); ia!=ea; ++ia )
+    {
+      sql += ", ";
+      sql += ia->first.c_str();
+    }
+    sql += QString( " FROM " ) + syntax.c_str() + " WHERE eid IN ( ";
+    list<int>::iterator il, el = it->second.end();
+    bool first = true;
+    for( il=it->second.begin(); il!=el; ++il )
+    {
+      if( first )
+        first = false;
+      else
+        sql += ", ";
+      sql += QString::number( *il );
+    }
+    sql += " )";
+    // cout << "graphs SQL: " << sql.utf8().data() << endl;
+    QSqlQuery res = database().exec( sql );
+    if( res.lastError().type() != 0 )
+      throw wrong_format_error( res.lastError().text().utf8().data(),
+                                hostname() );
+
+    while( res.next() )
+    {
+      Graph *graph = graphmap[ res.value(0).toInt() ]->graph;
+      graph->setProperty( "uuid",
+                          string( res.value(1).toString().utf8().data() ) );
+      readElementAttributes( *graph, res, gatts, 2 );
+    }
+  }
 }
 
 

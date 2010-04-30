@@ -259,6 +259,8 @@ namespace aims
         const std::map<std::string, std::vector<std::string> > & vatts,
         int i );
     void readGraphAttributes( Graph & g, int eid );
+    // read all attributes of multiple graphs
+    void readGraphAttributes( std::list<CurrentGraphData> & graphsinfo );
 
     /** Database schema syntax: supported attributes (database columns) for
         each element type
