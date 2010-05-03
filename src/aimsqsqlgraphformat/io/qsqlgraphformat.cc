@@ -208,7 +208,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   // find graph if a SQL query is provided
   if( !graphquery.empty() )
   {
-    QSqlQuery res = db.exec( string( "SELECT eid FROM _Graph WHERE " )
+    QSqlQuery res = db.exec( string( "SELECT eid FROM Graph WHERE " )
       + graphquery );
     if( res.lastError().type() != 0 )
       throw invalid_format_error( string( "Graph reader, graph selection:" )
@@ -247,26 +247,6 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
 
   // read graph attributes
   db.readGraphAttributes( graph, gid );
- /* typedef map<string, vector<string> > AttsOfType;
-  AttsOfType & gatts = attributes[ syntax ];
-  string sql = "SELECT ";
-  AttsOfType::iterator ia, ea = gatts.end();
-  int x = 0;
-  for( ia=gatts.begin(); ia!=ea; ++ia, ++x )
-  {
-    if( x != 0 )
-      sql += ", ";
-    sql += ia->first;
-  }
-  sql += " FROM _" + syntax + " WHERE eid=" + sgid;
-  QSqlQuery res = db.exec( sql );
-  if( res.lastError().type() != 0 )
-    throw wrong_format_error( res.lastError().text().utf8().data(),
-                              filename );
-
-  res.next();
-  db.readElementAttributes( graph, res, gatts, 0 );
-  */
 
   // retreive vertices types
   list<string> vtypes;
