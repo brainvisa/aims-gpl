@@ -58,11 +58,13 @@ namespace aims
     list_rc_ptr_Graph
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 list_CurrentGraphData & graphsinfo,
-                                bool allownewgraphs = true );
+                                bool allownewgraphs = true )
+                                throw ( carto::io_error, std::exception );
     list_rc_ptr_Graph
     partialReadFromEdgeQuery( const std::string & sqlquery,
                               list_CurrentGraphData & graphsinfo,
-                              bool allownewgraphs = true );
+                              bool allownewgraphs = true )
+                              throw ( carto::io_error, std::exception );
 
     void updateElement( const GraphObject & el, int eid );
     void fillGraphData( aims::QSqlGraphDatabase::CurrentGraphData & data,

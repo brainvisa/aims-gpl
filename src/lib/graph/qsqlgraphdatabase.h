@@ -251,6 +251,14 @@ namespace aims
     void readElementAttributes( GraphObject &,
                                 const std::list<std::string> & attributes,
                                 QSqlQuery & query, int eid );
+    /** Set the element attributes contained in the query result, but read
+        from an already filled vector of QVariant instrad of directly the SQL
+        query result
+    */
+    void readElementAttributes( GraphObject & item,
+                                const std::list<std::string> & attributes,
+                                const std::vector<QVariant> & query,
+                                int i );
     /** read/set *all* the attributes of the given element, which must have all
         been queried in the attributes map order.
         \param i is the index in the query of the first attribute
@@ -258,6 +266,15 @@ namespace aims
     void readElementAttributes( GraphObject & item, QSqlQuery & query,
         const std::map<std::string, std::vector<std::string> > & vatts,
         int i );
+    /* * read/set *all* the attributes of the given element, but read
+        from an already filled vector of QVariant instrad of directly the SQL
+        query result
+    */
+    /*
+    void readElementAttributes( GraphObject & item, QSqlQuery & query,
+        const std::map<std::string, std::vector<std::string> > & vatts,
+        int i );
+        */
     void readGraphAttributes( Graph & g, int eid );
     // read all attributes of multiple graphs
     void readGraphAttributes( std::list<CurrentGraphData> & graphsinfo );
