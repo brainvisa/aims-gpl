@@ -701,9 +701,9 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
       classnameindex = i;
   }
   cout << endl;
-  if( eidindex < 0 || graphindex < 0 )
+  if( eidindex < 0 )
     throw invalid_format_error(
-      "SELECT request on vertices must query eid and graph", hostname() );
+      "SELECT request on vertices must query eid", hostname() );
 
   QSqlQuery res = exec( sqlquery );
   if( !res.lastError().type() == 0 )
@@ -716,56 +716,184 @@ QSqlGraphDatabase::partialReadFromVertexQuery( const string & sqlquery,
   map<Graph *, map<int, Vertex *> > vmap;
   list<CurrentGraphData> graphstoread;
 
-  while( res.next() )
+  map<int, vector<QVariant> > result;
+  map<int, vector<QVariant> >::const_iterator ir, er = result.end();
+  int ncol = atts.size(), ncol2 = ncol;
+
+  if( graphindex < 0 )
   {
-    int eid = res.value( eidindex ).toInt();
-    int graph = res.value( graphindex ).toInt();
-    string classname;
-    if( classnameindex >= 0 )
+    // read and store the values
+    cout << "read values...\n";
+    if( classnameindex < 0 )
+      ++ncol2;
+    while( res.next() )
     {
-      classname = res.value( classnameindex ).toString().utf8().data();
+      vector<QVariant> & vv = result[ res.value( eidindex ).toInt() ];
+      vv.reserve( ncol2 );
+      for( i=0; i<ncol; ++i )
+        vv.push_back( res.value(i) );
     }
-    im = graphmap.find( graph );
-    CurrentGraphData *cg = 0;
-    if( im == em )
+    cout << result.size() << " values read\n";
+    if( result.empty() ) // nothing to return
+      return newgraphs;
+
+    // query graphs
+    QString sql = "SELECT graph, eid FROM _Vertex WHERE eid IN (";
+    QString vidstring;
+    bool first = true;
+    int eid;
+    for( ir=result.begin(); ir!=er; ++ir )
     {
-      if( allownewgraphs )
+      eid = ir->first;
+      if( first )
+        first = false;
+      else
+        vidstring += ", ";
+      vidstring += QString::number( eid );
+    }
+    sql += vidstring + ")";
+    // cout << "graphs SQL: " << sql.utf8().data() << endl;
+    QSqlQuery res2 = database().exec( sql );
+    if( !res2.lastError().type() == 0 )
+      throw invalid_format_error( res2.lastError().text().utf8().data(),
+                                  hostname() );
+    int graph;
+    map<int, CurrentGraphData *> v2g;
+    while( res2.next() )
+    {
+      graph = res2.value(0).toInt();
+      eid = res2.value(1).toInt();
+      im = graphmap.find( graph );
+      CurrentGraphData *cg = 0;
+      if( im == em )
       {
-        cout << "create graph\n";
-        Graph *g = new Graph;
-        newgraphs.push_back( rc_ptr<Graph>( g ) );
-        graphsinfo.push_back( CurrentGraphData( graph, g ) );
-        cg = &*graphsinfo.rbegin();
-        graphmap[ graph ] = cg;
-        graphstoread.push_back( *cg );
+        if( allownewgraphs )
+        {
+          cout << "create graph\n";
+          Graph *g = new Graph;
+          newgraphs.push_back( rc_ptr<Graph>( g ) );
+          graphsinfo.push_back( CurrentGraphData( graph, g ) );
+          cg = &*graphsinfo.rbegin();
+          graphmap[ graph ] = cg;
+          graphstoread.push_back( *cg );
+        }
+        else
+          continue;
       }
       else
-        continue;
+        cg = im->second;
+      v2g[ eid ] = cg;
     }
-    else
-      cg = im->second;
 
-    Vertex *v = 0;
-    map<int, Vertex *> & verts = vmap[ cg->graph ];
-    if( verts.empty() )
+    // read class_name if not here
+    if( classnameindex < 0 )
     {
-      // fill vertex map for this graph
-      map<Vertex*, int>::const_iterator imv, emv = cg->vertexeid.end();
-      for( imv=cg->vertexeid.begin(); imv!=emv; ++imv )
-        if( imv->second >= 0 )
-          verts[ imv->second ] = imv->first;
+      classnameindex = ncol;
+      sql = "SELECT class_name, eid FROM class WHERE eid in ( " + vidstring
+        + " )";
+      res2 = database().exec( sql );
+      if( !res2.lastError().type() == 0 )
+        throw invalid_format_error( res2.lastError().text().utf8().data(),
+                                    hostname() );
+      while( res2.next() )
+      {
+        result[ res2.value(1).toInt() ].push_back( res2.value(0) );
+      }
     }
-    map<int, Vertex *>::iterator iv = verts.find( eid );
-    if( iv == verts.end() )
+
+    // now read vertices
+    cout << "parse vertices...\n";
+    map<int, CurrentGraphData *>::const_iterator iv2g, ev2g = v2g.end();
+    for( ir=result.begin(); ir!=er; ++ir )
     {
-      v = cg->graph->addVertex( classname );
-      verts[ eid ] = v;
-      cg->vertexeid[ v ] = eid;
+      int eid = ir->first;
+      const vector<QVariant> & vv = ir->second;
+      iv2g = v2g.find( eid );
+      if( iv2g == ev2g )
+        continue;
+      CurrentGraphData *cg = iv2g->second;
+      string classname;
+      classname = vv[ classnameindex ].toString().utf8().data();
+
+      Vertex *v = 0;
+      map<int, Vertex *> & verts = vmap[ cg->graph ];
+      if( verts.empty() )
+      {
+        // fill vertex map for this graph
+        map<Vertex*, int>::const_iterator imv, emv = cg->vertexeid.end();
+        for( imv=cg->vertexeid.begin(); imv!=emv; ++imv )
+          if( imv->second >= 0 )
+            verts[ imv->second ] = imv->first;
+      }
+      map<int, Vertex *>::iterator iv = verts.find( eid );
+      if( iv == verts.end() )
+      {
+        v = cg->graph->addVertex( classname );
+        verts[ eid ] = v;
+        cg->vertexeid[ v ] = eid;
+      }
+      else
+        v = iv->second;
+      readElementAttributes( *v, atts, vv, eid );
     }
-    else
-      v = iv->second;
-    readElementAttributes( *v, atts, res, eid );
+
   }
+
+  else
+  {
+    // case when all needed data is in the same query
+    while( res.next() )
+    {
+      int eid = res.value( eidindex ).toInt();
+      int graph = res.value( graphindex ).toInt();
+      string classname;
+      if( classnameindex >= 0 )
+      {
+        classname = res.value( classnameindex ).toString().utf8().data();
+      }
+      im = graphmap.find( graph );
+      CurrentGraphData *cg = 0;
+      if( im == em )
+      {
+        if( allownewgraphs )
+        {
+          cout << "create graph\n";
+          Graph *g = new Graph;
+          newgraphs.push_back( rc_ptr<Graph>( g ) );
+          graphsinfo.push_back( CurrentGraphData( graph, g ) );
+          cg = &*graphsinfo.rbegin();
+          graphmap[ graph ] = cg;
+          graphstoread.push_back( *cg );
+        }
+        else
+          continue;
+      }
+      else
+        cg = im->second;
+
+      Vertex *v = 0;
+      map<int, Vertex *> & verts = vmap[ cg->graph ];
+      if( verts.empty() )
+      {
+        // fill vertex map for this graph
+        map<Vertex*, int>::const_iterator imv, emv = cg->vertexeid.end();
+        for( imv=cg->vertexeid.begin(); imv!=emv; ++imv )
+          if( imv->second >= 0 )
+            verts[ imv->second ] = imv->first;
+      }
+      map<int, Vertex *>::iterator iv = verts.find( eid );
+      if( iv == verts.end() )
+      {
+        v = cg->graph->addVertex( classname );
+        verts[ eid ] = v;
+        cg->vertexeid[ v ] = eid;
+      }
+      else
+        v = iv->second;
+      readElementAttributes( *v, atts, res, eid );
+    }
+  }
+
   readGraphAttributes( graphstoread );
 
   cout << "newgraphs: " << newgraphs.size() << endl;
@@ -1009,7 +1137,7 @@ QSqlGraphDatabase::partialReadFromEdgeQuery( const string & sqlquery,
         map<int, Vertex *>::iterator iv = verts.find( vertex1 );
         if( iv == verts.end() )
         {
-          v1 = cg->graph->addVertex( classname );
+          v1 = cg->graph->addVertex( /* FIXME */ "" );
           verts[ vertex1 ] = v1;
           cg->vertexeid[ v1 ] = vertex1;
         }
@@ -1018,7 +1146,7 @@ QSqlGraphDatabase::partialReadFromEdgeQuery( const string & sqlquery,
         iv = verts.find( vertex2 );
         if( iv == verts.end() )
         {
-          v2 = cg->graph->addVertex( classname );
+          v2 = cg->graph->addVertex( "" );
           verts[ vertex2 ] = v2;
           cg->vertexeid[ v2 ] = vertex2;
         }
