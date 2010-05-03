@@ -111,6 +111,16 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
                             const carto::AllocatorContext &,
                             carto::Object options )
 {
+  bool useJoins = false;
+  try
+  {
+    Object uj = options->getProperty( "use_joins" );
+    if( !uj.isNull() )
+      useJoins = uj->getScalar();
+  }
+  catch( ... )
+  {
+  }
   QSqlGraphDatabase db;
   Object hdr;
   bool hadhdr = graph.getProperty( "header", hdr );
@@ -198,7 +208,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   // find graph if a SQL query is provided
   if( !graphquery.empty() )
   {
-    QSqlQuery res = db.exec( string( "SELECT eid FROM Graph WHERE " )
+    QSqlQuery res = db.exec( string( "SELECT eid FROM _Graph WHERE " )
       + graphquery );
     if( res.lastError().type() != 0 )
       throw invalid_format_error( string( "Graph reader, graph selection:" )
@@ -236,7 +246,8 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   map<string, map<string, vector<string> > > & attributes = *syntaxattributes;
 
   // read graph attributes
-  typedef map<string, vector<string> > AttsOfType;
+  db.readGraphAttributes( graph, gid );
+ /* typedef map<string, vector<string> > AttsOfType;
   AttsOfType & gatts = attributes[ syntax ];
   string sql = "SELECT ";
   AttsOfType::iterator ia, ea = gatts.end();
@@ -247,7 +258,7 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       sql += ", ";
     sql += ia->first;
   }
-  sql += " FROM " + syntax + " WHERE eid=" + sgid;
+  sql += " FROM _" + syntax + " WHERE eid=" + sgid;
   QSqlQuery res = db.exec( sql );
   if( res.lastError().type() != 0 )
     throw wrong_format_error( res.lastError().text().utf8().data(),
@@ -255,17 +266,55 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
 
   res.next();
   db.readElementAttributes( graph, res, gatts, 0 );
+  */
 
   // retreive vertices types
-  sql = "SELECT class_name FROM class JOIN _Vertex ON _Vertex.eid=class.eid"
-    " WHERE _Vertex.graph=" + sgid + " GROUP BY class_name";
-  res = db.exec( sql );
-  if( res.lastError().type() != 0 )
-    throw wrong_format_error( res.lastError().text().utf8().data(),
-                              filename );
   list<string> vtypes;
-  while( res.next() )
-    vtypes.push_back( res.value(0).toString().utf8().data() );
+  map<int, int> gindex;
+  QString vidstring;
+  string sql;
+  QSqlQuery res;
+
+  if( useJoins )
+  {
+    sql = "SELECT class_name FROM class JOIN _Vertex ON _Vertex.eid=class.eid"
+      " WHERE _Vertex.graph=" + sgid + " GROUP BY class_name";
+    res = db.exec( sql );
+    if( res.lastError().type() != 0 )
+      throw wrong_format_error( res.lastError().text().utf8().data(),
+                                filename );
+    while( res.next() )
+      vtypes.push_back( res.value(0).toString().utf8().data() );
+  }
+  else
+  {
+    QString sql = QString( "SELECT eid, graph_index FROM _Vertex WHERE "
+      "_Vertex.graph=" ) + sgid.c_str();
+    res = db.database().exec( sql );
+    if( res.lastError().type() != 0 )
+      throw wrong_format_error( res.lastError().text().utf8().data(),
+                                filename );
+    sql = "SELECT class_name FROM class WHERE eid in ( ";
+    bool first = true;
+    while( res.next() )
+    {
+      int eid = res.value(0).toInt();
+      gindex[ eid ] = res.value(1).toInt();
+      if( first )
+        first = false;
+      else
+        vidstring += ", ";
+      vidstring += QString::number( eid );
+    }
+    sql += vidstring + " ) GROUP BY class_name";
+    res = db.database().exec( sql );
+    if( res.lastError().type() != 0 )
+      throw wrong_format_error( res.lastError().text().utf8().data(),
+                                filename );
+    while( res.next() )
+      vtypes.push_back( res.value(0).toString().utf8().data() );
+  }
+
   map<int, Vertex *> id2vertex;
 
   // cout << "vertices types: " << vtypes.size() << endl;
@@ -275,11 +324,21 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
   {
     const string & vt = *ivt;
     const map<string, vector<string> > & vatts = attributes[ vt ];
+    int start = 1;
     sql = "SELECT eid";
+    if( useJoins )
+    {
+      sql += ", graph_index";
+      start = 2;
+    }
     map<string, vector<string> >::const_iterator ivat, evat = vatts.end();
     for( ivat=vatts.begin(); ivat!=evat; ++ivat )
       sql += string( ", " ) + ivat->first;
-    sql += " FROM " + vt + " WHERE graph=" + sgid;
+    sql += " FROM ";
+    if( useJoins )
+      sql += vt + " WHERE graph=" + sgid;
+    else
+      sql += "_" + vt + " WHERE eid IN ( " + vidstring.utf8().data() + " )";
     // cout << "vtype: " << vt << ", SQL:\n" << sql << endl;
     res = db.exec( sql );
     if( res.lastError().type() != 0 )
@@ -290,48 +349,120 @@ bool QSqlGraphFormat::read( const std::string & filename1, Graph & graph,
       Vertex *v = graph.addVertex( vt );
       int vid = res.value(0).toInt();
       id2vertex[ vid ] = v;
-      db.readElementAttributes( *v, res, vatts, 1 );
+      db.readElementAttributes( *v, res, vatts, start );
+      if( useJoins )
+        v->setProperty( "index", res.value(1).toInt() );
+      else
+        v->setProperty( "index", gindex[ vid ] );
     }
   }
 
   // retreive edges types
-  sql = "SELECT class_name FROM class JOIN _Vertex,_Edge ON "
-    "_Edge.eid=class.eid AND _Edge.eid=class.eid WHERE "
-    "(_Vertex.eid=_Edge.vertex1 OR _Vertex.eid=_Edge.vertex2) AND "
-    "_Vertex.graph=" + sgid + " GROUP BY class_name";
-  res = db.exec( sql );
-  if( res.lastError().type() != 0 )
-    throw wrong_format_error( res.lastError().text().utf8().data(),
-                              filename );
   list<string> etypes;
-  while( res.next() )
-    etypes.push_back( res.value(0).toString().utf8().data() );
-
-  // cout << "edges types: " << etypes.size() << endl;
-  // select edges
-  evt = etypes.end();
-  for( ivt=etypes.begin(); ivt!=evt; ++ivt )
+  map<int, vector<int> > eindex;
+  QString eidstring;
+  if( useJoins )
   {
-    const string & et = *ivt;
-    // cout << "edge type: " << et << endl;
-    const map<string, vector<string> > & eatts = attributes[ et ];
-    sql = string( "SELECT " ) + et + ".vertex1, " + et + ".vertex2";
-    map<string, vector<string> >::const_iterator ieat, eeat = eatts.end();
-    for( ieat=eatts.begin(); ieat!=eeat; ++ieat )
-      sql += string( ", " ) + et + "." + ieat->first;
-    sql += " FROM " + et + " JOIN _Vertex ON _Vertex.eid=vertex1 WHERE "
-      "_Vertex.graph=" + sgid;
-    // cout << "etype: " << et << ", SQL:\n" << sql << endl;
+    sql = "SELECT class_name FROM class JOIN _Vertex,_Edge ON "
+      "_Edge.eid=class.eid AND _Edge.eid=class.eid WHERE "
+      "(_Vertex.eid=_Edge.vertex1 OR _Vertex.eid=_Edge.vertex2) AND "
+      "_Vertex.graph=" + sgid + " GROUP BY class_name";
     res = db.exec( sql );
     if( res.lastError().type() != 0 )
       throw wrong_format_error( res.lastError().text().utf8().data(),
                                 filename );
     while( res.next() )
+      etypes.push_back( res.value(0).toString().utf8().data() );
+
+    // cout << "edges types: " << etypes.size() << endl;
+    // select edges
+    evt = etypes.end();
+    for( ivt=etypes.begin(); ivt!=evt; ++ivt )
     {
-      Vertex *v1 = id2vertex[ res.value(0).toInt() ];
-      Vertex *v2 = id2vertex[ res.value(1).toInt() ];
-      Edge* e = graph.addEdge( v1, v2, et );
-      db.readElementAttributes( *e, res, eatts, 2 );
+      const string & et = *ivt;
+      // cout << "edge type: " << et << endl;
+      const map<string, vector<string> > & eatts = attributes[ et ];
+      sql = string( "SELECT " ) + et + ".vertex1, " + et + ".vertex2";
+      map<string, vector<string> >::const_iterator ieat, eeat = eatts.end();
+      for( ieat=eatts.begin(); ieat!=eeat; ++ieat )
+        sql += string( ", " ) + et + "." + ieat->first;
+      sql += " FROM " + et + " JOIN _Vertex ON _Vertex.eid=vertex1 WHERE "
+        "_Vertex.graph=" + sgid;
+      // cout << "etype: " << et << ", SQL:\n" << sql << endl;
+      res = db.exec( sql );
+      if( res.lastError().type() != 0 )
+        throw wrong_format_error( res.lastError().text().utf8().data(),
+                                  filename );
+      while( res.next() )
+      {
+        Vertex *v1 = id2vertex[ res.value(0).toInt() ];
+        Vertex *v2 = id2vertex[ res.value(1).toInt() ];
+        Edge* e = graph.addEdge( v1, v2, et );
+        db.readElementAttributes( *e, res, eatts, 2 );
+      }
+    }
+  }
+  else
+  {
+    QString sql = "SELECT eid, vertex1, vertex2, graph_index FROM _Edge WHERE "
+      "vertex1 in ( " + vidstring + " )";
+    res = db.database().exec( sql );
+    if( res.lastError().type() != 0 )
+      throw wrong_format_error( res.lastError().text().utf8().data(),
+                                filename );
+    sql = "SELECT class_name FROM class WHERE eid in ( ";
+    bool first = true;
+    while( res.next() )
+    {
+      int eid = res.value(0).toInt();
+      vector<int> & ee = eindex[ eid ];
+      ee.reserve( 3 );
+      ee.push_back( res.value(1).toInt() );
+      ee.push_back( res.value(2).toInt() );
+      ee.push_back( res.value(3).toInt() );
+      if( first )
+        first = false;
+      else
+        eidstring += ", ";
+      eidstring += QString::number( eid );
+    }
+    sql += eidstring + " ) GROUP BY class_name";
+    res = db.database().exec( sql );
+    if( res.lastError().type() != 0 )
+      throw wrong_format_error( res.lastError().text().utf8().data(),
+                                filename );
+    while( res.next() )
+      etypes.push_back( res.value(0).toString().utf8().data() );
+
+    // cout << "edges types: " << etypes.size() << endl;
+    // select edges
+    evt = etypes.end();
+    for( ivt=etypes.begin(); ivt!=evt; ++ivt )
+    {
+      const string & et = *ivt;
+      // cout << "edge type: " << et << endl;
+      const map<string, vector<string> > & eatts = attributes[ et ];
+      sql = "SELECT eid";
+      map<string, vector<string> >::const_iterator ieat, eeat = eatts.end();
+      for( ieat=eatts.begin(); ieat!=eeat; ++ieat )
+        sql += ", " + QString( ieat->first.c_str() );
+      sql += QString( " FROM _" ) + et.c_str() + " WHERE eid IN ( "
+        + eidstring + " )";
+      // cout << "etype: " << et << ", SQL:\n" << sql << endl;
+      res = db.database().exec( sql );
+      if( res.lastError().type() != 0 )
+        throw wrong_format_error( res.lastError().text().utf8().data(),
+                                  filename );
+      while( res.next() )
+      {
+        int eid = res.value(0).toInt();
+        const vector<int> & ee = eindex[ eid ];
+        Vertex *v1 = id2vertex[ ee[0] ];
+        Vertex *v2 = id2vertex[ ee[1] ];
+        Edge* e = graph.addEdge( v1, v2, et );
+        db.readElementAttributes( *e, res, eatts, 2 );
+        e->setProperty( "index", ee[2] );
+      }
     }
   }
 
