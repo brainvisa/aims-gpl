@@ -12,7 +12,7 @@ class PyAimsGuiComponent( GenericMakerComponent ):
       self._data[ 'sipinclude' ] = SipComponent.sipinclude( self )
 
   def dependencies( self ):
-    return [ "pyaims(aims)", PyQtComponent, AimsGuiComponent ]
+    return [ PyQtComponent, "pyaims(aims)", AimsGuiComponent ]
 
   def libraries( self ):
     return []
