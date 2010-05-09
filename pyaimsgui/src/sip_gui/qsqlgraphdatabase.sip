@@ -55,6 +55,19 @@ namespace aims
                                aims::QSqlGraphDatabase::CurrentGraphData & data );
     void insertOrUpdateEdge( Edge* v,
                              aims::QSqlGraphDatabase::CurrentGraphData & data );
+%If (SIP_THROW_BUG)
+    list_rc_ptr_Graph
+    partialReadFromVertexQuery( const std::string & sqlquery,
+                                list_CurrentGraphData & graphsinfo,
+                                bool allownewgraphs = true )
+                                throw ();
+    list_rc_ptr_Graph
+    partialReadFromEdgeQuery( const std::string & sqlquery,
+                              list_CurrentGraphData & graphsinfo,
+                              bool allownewgraphs = true )
+                              throw ();
+%End
+%If (!SIP_THROW_BUG)
     list_rc_ptr_Graph
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 list_CurrentGraphData & graphsinfo,
@@ -65,6 +78,7 @@ namespace aims
                               list_CurrentGraphData & graphsinfo,
                               bool allownewgraphs = true )
                               throw ( carto::io_error, std::exception );
+%End
 
     void updateElement( const GraphObject & el, int eid );
     void fillGraphData( aims::QSqlGraphDatabase::CurrentGraphData & data,
