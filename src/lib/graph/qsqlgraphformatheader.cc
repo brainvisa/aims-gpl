@@ -34,6 +34,7 @@
 #include <aims/graph/qsqlgraphformatheader.h>
 #include <cartobase/exception/ioexcept.h>
 #include <cartobase/stream/fdinhibitor.h>
+#include <cartobase/stream/fileutil.h>
 #include <qsqldatabase.h>
 #include <qsqlquery.h>
 #include <qsqlerror.h>
@@ -66,6 +67,19 @@ void QSqlGraphFormatHeader::read()
 
   try
   {
+    bool ok = false;
+    if( FileUtil::fileStat( fileName ).find( '+' ) == string::npos )
+    {
+      if( fileName.size() < 7
+        || fileName.substr( fileName.length()-7, 7 ) != ".sqlite" )
+      {
+        fileName += ".sqlite";
+        if( FileUtil::fileStat( fileName ).find( '+' ) != string::npos )
+          ok = true;
+      }
+      if( !ok )
+        throw file_not_found_error( "file not found", _name );
+    }
     // avoid writing error messages about missing QtSQL plugins
     fdinhibitor fdi( STDERR_FILENO );
     fdi.close();
@@ -79,7 +93,7 @@ void QSqlGraphFormatHeader::read()
 #endif
     fdi.open();
     db.setDatabaseName( fileName.c_str() );
-    bool ok = db.open();
+    ok = db.open();
     if( !ok )
     {
       if( fileName.size() < 7 || fileName.substr( fileName.length()-7, 7 ) != ".sqlite" )
