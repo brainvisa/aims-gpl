@@ -96,11 +96,15 @@ void QSqlGraphFormatHeader::read()
     ok = db.open();
     if( !ok )
     {
-      if( fileName.size() < 7 || fileName.substr( fileName.length()-7, 7 ) != ".sqlite" )
+      if( fileName.size() < 7 || fileName.substr( fileName.length()-7, 7 )
+        != ".sqlite" )
       {
         fileName += ".sqlite";
-        db.setDatabaseName( fileName.c_str() );
-        ok = db.open();
+        if( FileUtil::fileStat( fileName ).find( '+' ) != string::npos )
+        {
+          db.setDatabaseName( fileName.c_str() );
+          ok = db.open();
+        }
         if( ok )
           _name = fileName;
         else
