@@ -46,12 +46,12 @@ for component in [ 'pyaimsgui' ]:
   options[ component ].update( oldop )
   c = options.setdefault( component, {} )
   c[ 'source' ] = os.path.join( currentComponentDirectory, component )
-  c[ 'version' ] = '4.0'
+  c[ 'version' ] = '4.1'
   
 oldop = options.setdefault( 'aimsgui', {} )
 options[ 'aimsgui' ] = copy.copy( opts )
 options[ 'aimsgui' ].update( oldop )
 c = options.setdefault( 'aimsgui', {} )
 c[ 'source' ] = currentComponentDirectory
-c[ 'version' ] = '4.0'
+c[ 'version' ] = '4.1'
 
