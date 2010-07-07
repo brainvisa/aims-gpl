@@ -142,71 +142,100 @@ QtFormatsPlugin::QtFormatsPlugin() : Plugin()
         }
       else
         {
+          if( fmt == "TIF" )
+            fmt = "TIFF";
           ext.push_back( e.lower().utf8().data() );
           exts.push_back( e.lower().utf8().data() );
           if( format == "QtFormats" )
             format = fmt;
         }
+      if( !FileFormatDictionary<AimsData<int8_t> >::fileFormat( fmt ) )
+      {
 #ifdef AIMS_APPLE_GCC33BUG
-      macosxbugs::fileFormatDictionary_dataint8_registerFormat( fmt, df1,
+        macosxbugs::fileFormatDictionary_dataint8_registerFormat( fmt, df1,
           ext );
 #else
-      FileFormatDictionary<AimsData<int8_t> >::registerFormat( fmt, df1, ext );
+        FileFormatDictionary<AimsData<int8_t> >::registerFormat( fmt, df1, ext );
 #endif
-      VolumeFormat<int8_t>	*vf1 = new VolumeFormat<int8_t>( fmt );
-      FileFormatDictionary<Volume<int8_t> >::registerFormat( fmt, vf1,
+        VolumeFormat<int8_t>	*vf1 = new VolumeFormat<int8_t>( fmt );
+        FileFormatDictionary<Volume<int8_t> >::registerFormat( fmt, vf1,
           ext );
+      }
 
-      FileFormatDictionary<AimsData<uint8_t> >::registerFormat( fmt, df2, 
-                                                                ext );
-      VolumeFormat<uint8_t>	*vf2 = new VolumeFormat<uint8_t>( fmt );
-      FileFormatDictionary<Volume<uint8_t> >::registerFormat( fmt, vf2,
-          ext );
+      if( !FileFormatDictionary<AimsData<uint8_t> >::fileFormat( fmt ) )
+      {
+        FileFormatDictionary<AimsData<uint8_t> >::registerFormat( fmt, df2,
+                                                                  ext );
+        VolumeFormat<uint8_t>	*vf2 = new VolumeFormat<uint8_t>( fmt );
+        FileFormatDictionary<Volume<uint8_t> >::registerFormat( fmt, vf2,
+            ext );
+      }
 
-      FileFormatDictionary<AimsData<int16_t> >::registerFormat( fmt, df3,
-          ext );
-      VolumeFormat<int16_t>	*vf3 = new VolumeFormat<int16_t>( fmt );
-      FileFormatDictionary<Volume<int16_t> >::registerFormat( fmt, vf3,
-          ext );
+      if( !FileFormatDictionary<AimsData<int16_t> >::fileFormat( fmt ) )
+      {
+        FileFormatDictionary<AimsData<int16_t> >::registerFormat( fmt, df3,
+            ext );
+        VolumeFormat<int16_t>	*vf3 = new VolumeFormat<int16_t>( fmt );
+        FileFormatDictionary<Volume<int16_t> >::registerFormat( fmt, vf3,
+            ext );
+      }
 
-      FileFormatDictionary<AimsData<uint16_t> >::registerFormat( fmt, df4,
-          ext );
-      VolumeFormat<uint16_t>	*vf4 = new VolumeFormat<uint16_t>( fmt );
-      FileFormatDictionary<Volume<uint16_t> >::registerFormat( fmt, vf4,
-          ext );
+      if( !FileFormatDictionary<AimsData<uint16_t> >::fileFormat( fmt ) )
+      {
+        FileFormatDictionary<AimsData<uint16_t> >::registerFormat( fmt, df4,
+            ext );
+        VolumeFormat<uint16_t>	*vf4 = new VolumeFormat<uint16_t>( fmt );
+        FileFormatDictionary<Volume<uint16_t> >::registerFormat( fmt, vf4,
+            ext );
+      }
 
-      FileFormatDictionary<AimsData<int32_t> >::registerFormat( fmt, df5,
-          ext );
-      VolumeFormat<int32_t>	*vf5 = new VolumeFormat<int32_t>( fmt );
-      FileFormatDictionary<Volume<int32_t> >::registerFormat( fmt, vf5,
-          ext );
+      if( !FileFormatDictionary<AimsData<int32_t> >::fileFormat( fmt ) )
+      {
+        FileFormatDictionary<AimsData<int32_t> >::registerFormat( fmt, df5,
+            ext );
+        VolumeFormat<int32_t>	*vf5 = new VolumeFormat<int32_t>( fmt );
+        FileFormatDictionary<Volume<int32_t> >::registerFormat( fmt, vf5,
+            ext );
+      }
 
-      FileFormatDictionary<AimsData<uint32_t> >::registerFormat( fmt, df6,
-          ext );
-      VolumeFormat<uint32_t>	*vf6 = new VolumeFormat<uint32_t>( fmt );
-      FileFormatDictionary<Volume<uint32_t> >::registerFormat( fmt, vf6,
-          ext );
+      if( !FileFormatDictionary<AimsData<uint32_t> >::fileFormat( fmt ) )
+      {
+        FileFormatDictionary<AimsData<uint32_t> >::registerFormat( fmt, df6,
+            ext );
+        VolumeFormat<uint32_t>	*vf6 = new VolumeFormat<uint32_t>( fmt );
+        FileFormatDictionary<Volume<uint32_t> >::registerFormat( fmt, vf6,
+            ext );
+      }
 
+      if( !FileFormatDictionary<AimsData<AimsRGB> >::fileFormat( fmt ) )
+      {
 #ifdef AIMS_APPLE_GCC33BUG
-      macosxbugs::fileFormatDictionary_dataRGB_registerFormat( fmt, df8, ext );
+        macosxbugs::fileFormatDictionary_dataRGB_registerFormat( fmt, df8, ext );
 #else
-      FileFormatDictionary<AimsData<AimsRGB> >::registerFormat( fmt, df8, 
-                                                                ext );
+        FileFormatDictionary<AimsData<AimsRGB> >::registerFormat( fmt, df8, 
+                                                                  ext );
 #endif
-      VolumeFormat<AimsRGB>	*vf13 = new VolumeFormat<AimsRGB>( fmt );
-      FileFormatDictionary<Volume<AimsRGB> >::registerFormat( fmt, vf13, 
-                                                              ext );
+        VolumeFormat<AimsRGB>	*vf13 = new VolumeFormat<AimsRGB>( fmt );
+        FileFormatDictionary<Volume<AimsRGB> >::registerFormat( fmt, vf13,
+                                                                ext );
+      }
 
-      FileFormatDictionary<AimsData<AimsRGBA> >::registerFormat( fmt, df9, 
-                                                                 ext );
-      VolumeFormat<AimsRGBA>	*vf14 = new VolumeFormat<AimsRGBA>( fmt );
-      FileFormatDictionary<Volume<AimsRGBA> >::registerFormat( fmt, vf14, 
-                                                               ext );
+      if( !FileFormatDictionary<AimsData<AimsRGBA> >::fileFormat( fmt ) )
+      {
+        FileFormatDictionary<AimsData<AimsRGBA> >::registerFormat( fmt, df9,
+                                                                  ext );
+        VolumeFormat<AimsRGBA>	*vf14 = new VolumeFormat<AimsRGBA>( fmt );
+        FileFormatDictionary<Volume<AimsRGBA> >::registerFormat( fmt, vf14,
+                                                                ext );
+      }
 
-      // ### remove after everything has been moved to intN_t/uintN_t
-      FileFormatDictionary<AimsData<char> >::registerFormat( fmt, df10, ext );
-      VolumeFormat<char>	*vf10 = new VolumeFormat<char>( fmt );
-      FileFormatDictionary<Volume<char> >::registerFormat( fmt, vf10, ext );
+      if( !FileFormatDictionary<AimsData<int8_t> >::fileFormat( fmt ) )
+      {
+        // ### remove after everything has been moved to intN_t/uintN_t
+        FileFormatDictionary<AimsData<char> >::registerFormat( fmt, df10, ext );
+        VolumeFormat<char>	*vf10 = new VolumeFormat<char>( fmt );
+        FileFormatDictionary<Volume<char> >::registerFormat( fmt, vf10, ext );
+      }
     }
   Finder::registerFormat( format, new FinderQtFormats, exts );
 }
