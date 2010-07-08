@@ -519,9 +519,11 @@ void QSqlGraphDatabase::insertOrUpdateEdge( Edge* v,
   {
     // insert
     // cout << "insert edge " << v << ": " << v->getSyntax() << endl;
-    string sql = "INSERT INTO " + v->getSyntax() + " ( vertex1, vertex2";
+    string sql = "INSERT INTO " + v->getSyntax()
+      + " ( graph, vertex1, vertex2";
     Edge::const_iterator ive = v->begin();
     stringstream vids;
+    vids << data.gid << ", ";
     vids << data.vertexeid[ *ive ] << ", ";
     ++ive;
     vids << data.vertexeid[ *ive ];
