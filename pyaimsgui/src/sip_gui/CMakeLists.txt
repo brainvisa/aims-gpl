@@ -1,4 +1,4 @@
-BRAINVISA_COPY_FILES( ${PROJECT_NAME}-devel "${CMAKE_CURRENT_SOURCE_DIR}/aimsgui.sip" "${CMAKE_CURRENT_SOURCE_DIR}/aimsgui.tpl"
+BRAINVISA_COPY_FILES( ${PROJECT_NAME}-dev "${CMAKE_CURRENT_SOURCE_DIR}/aimsgui.sip" "${CMAKE_CURRENT_SOURCE_DIR}/aimsgui.tpl"
                       SOURCE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                       DESTINATION "${AIMS_RELATIVE_SIP_DIRECTORY}" 
                       IMMEDIATE )
@@ -9,7 +9,7 @@ configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/typessub.py"
                 COPYONLY )
 BRAINVISA_INSTALL( PROGRAMS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub_pyaimsgui.py"
                    DESTINATION "${AIMS_RELATIVE_SIP_DIRECTORY}"
-                   COMPONENT ${PROJECT_NAME}-devel )
+                   COMPONENT ${PROJECT_NAME}-dev )
 
 exec_program( ${PYTHON_EXECUTABLE}
   ARGS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/maketemplates.py"
