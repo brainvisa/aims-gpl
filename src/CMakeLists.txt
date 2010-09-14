@@ -23,6 +23,6 @@ foreach( _command AimsAttributedViewer AimsLabelSelector )
     target_link_libraries( ${_target} aimsgui )
     BRAINVISA_INSTALL( TARGETS ${_target}
                   DESTINATION bin
-                  COMPONENT aimsdata )
+                  COMPONENT ${PROJECT_NAME} )
   endif( IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${_command}" )
 endforeach( _command )
