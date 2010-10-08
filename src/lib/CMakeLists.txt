@@ -8,3 +8,10 @@ target_link_libraries( aimsgui ${QT_LIBRARIES} ${AIMS_AIMSDATA_LIBRARIES} )
 BRAINVISA_INSTALL( TARGETS aimsgui
               DESTINATION lib
               COMPONENT ${PROJECT_NAME} )
+
+IF ( DOXYGEN_FOUND )
+  set(DOXYFILE_PROJECT_NAME "aimsgui")
+  BRAINVISA_GENERATE_DOXYGEN_DOC( _headers 
+                                  INPUT_PREFIX "${CMAKE_BINARY_DIR}/include/aims" )
+ENDIF ( DOXYGEN_FOUND )
+
