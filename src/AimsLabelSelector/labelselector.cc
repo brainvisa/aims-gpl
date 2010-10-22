@@ -67,7 +67,7 @@ int main( int argc, char** argv )
   try
     {
       aapp.initialize();
-      QApplication app( argc, argv, ! batch );
+      QApplication app( argc, argv );
 
       LabelSelector 
         *ls = new LabelSelector( 0, "LabelSelector", false );
