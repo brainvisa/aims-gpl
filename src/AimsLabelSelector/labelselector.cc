@@ -45,7 +45,6 @@ using namespace std;
 
 int main( int argc, char** argv )
 {
-  QApplication		app( argc, argv );
   AimsApplication	aapp( argc, (const char**) argv, 
 			      "Selects ROI labels from a nomenclature\n"
 			      "(to be used as input for ROI and morphometry "
@@ -68,6 +67,7 @@ int main( int argc, char** argv )
   try
     {
       aapp.initialize();
+      QApplication app( argc, argv, batch );
 
       LabelSelector 
         *ls = new LabelSelector( 0, "LabelSelector", false );
