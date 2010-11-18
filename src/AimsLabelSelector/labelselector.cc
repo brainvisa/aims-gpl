@@ -33,6 +33,7 @@
 
 #include <cstdlib>
 #include <aims/selection/labelselector.h>
+#include <aims/selection/selector.h>
 #include <aims/getopt/getopt2.h>
 #include <qapplication.h>
 
@@ -69,7 +70,22 @@ int main( int argc, char** argv )
       aapp.initialize();
       QApplication app( argc, argv );
 
-      LabelSelector 
+      if( batch )
+      {
+        Selector sel;
+        if( !model.empty() )
+          sel.loadModel( model );
+        if( !hier.empty() )
+          sel.loadNomenclature( hier );
+        if( !presel.empty() )
+          sel.loadPreSelection( presel );
+        sel.printSelection();
+
+        return EXIT_SUCCESS;
+      }
+
+      QApplication          app( argc, argv );
+      LabelSelector
         *ls = new LabelSelector( 0, "LabelSelector", false );
       ls->resize( ls->sizeHint() );
       app.setMainWidget( ls );
@@ -85,12 +101,6 @@ int main( int argc, char** argv )
         {
           ls->loadPreselection( presel.c_str() );
           ls->activatePreselection();
-        }
-      if( batch )
-        {
-          ls->autoActivate();
-          ls->printSelection();
-          return 0;
         }
       if( model.empty() && presel.empty() && !hier.empty() )
         ls->showTab( "hierarchy" );
