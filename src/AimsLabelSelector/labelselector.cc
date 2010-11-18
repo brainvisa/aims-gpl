@@ -68,7 +68,6 @@ int main( int argc, char** argv )
   try
     {
       aapp.initialize();
-      QApplication app( argc, argv );
 
       if( batch )
       {
