@@ -4,7 +4,7 @@ class AimsGPLComponent( GenericMakerModuleComponent ):
   _name = 'aims-gpl'
 
   def dependencies( self ):
-    return [ AimsGuiComponent ]
+    return [ 'aimsdata(aims)' ]
 
   def weakDependencies( self ):
     if weakDependency( 'pyaimsgui' ):
@@ -13,29 +13,6 @@ class AimsGPLComponent( GenericMakerModuleComponent ):
 
   def libraries( self ):
     return []
-
-#-----------------------------------------------------------------------------
-class AimsGuiComponent( GenericMakerComponent ):
-  _name = 'aimsgui'
-
-  def sourceName( self ):
-    return 'aims-gpl'
-
-  def dependencies( self ):
-    return [ QtComponent, 'aimsdata(aims)' ]
-
-  def package( self ):
-    GenericMakerComponent.package( self )
-    if systemname == 'darwin' and not x11:
-      guis = [ 'AimsAttributedViewer', 'AimsLabelSelector' ]
-      prefix = os.path.join( packageDir(), 'bin' )
-      src = self._data.get( 'sources' )
-      icon = os.path.join( self.buildDir(), self.shareDir(), 'icons', self._name + '.icns' )
-      qt = getInstance( QtComponent )
-      if not os.path.exists( icon ):
-        icon = None
-      for x in guis:
-        qt.installMacOSApp( self, prefix, os.path.join( prefix, x ), icon )
 
 #-----------------------------------------------------------------------------
 currentComponentDirectory = os.path.dirname( currentComponentFile )
@@ -47,11 +24,4 @@ for component in [ 'pyaimsgui' ]:
   c = options.setdefault( component, {} )
   c[ 'source' ] = os.path.join( currentComponentDirectory, component )
   c[ 'version' ] = '4.1'
-  
-oldop = options.setdefault( 'aimsgui', {} )
-options[ 'aimsgui' ] = copy.copy( opts )
-options[ 'aimsgui' ].update( oldop )
-c = options.setdefault( 'aimsgui', {} )
-c[ 'source' ] = currentComponentDirectory
-c[ 'version' ] = '4.1'
 

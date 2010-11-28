@@ -37,7 +37,6 @@ else()
 endif()
 include( "${AIMS-FREE_USE_FILE}" )
 
-add_subdirectory( src )
 add_subdirectory( pyaimsgui )
 
 BRAINVISA_CREATE_CMAKE_CONFIG_FILES()
