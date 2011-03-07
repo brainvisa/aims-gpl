@@ -55,7 +55,7 @@ namespace aims
                                aims::QSqlGraphDatabase::CurrentGraphData & data );
     void insertOrUpdateEdge( Edge* v,
                              aims::QSqlGraphDatabase::CurrentGraphData & data );
-%If (SIP_THROW_BUG)
+%If (SIPTHROW_BUG)
     list_rc_ptr_Graph
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 list_CurrentGraphData & graphsinfo,
@@ -67,7 +67,7 @@ namespace aims
                               bool allownewgraphs = true )
                               throw ();
 %End
-%If (!SIP_THROW_BUG)
+%If (!SIPTHROW_BUG)
     list_rc_ptr_Graph
     partialReadFromVertexQuery( const std::string & sqlquery,
                                 list_CurrentGraphData & graphsinfo,
