@@ -3,6 +3,7 @@
 
 %ModuleHeaderCode
 #include <aims/qtmisc/resolvesymlinks.h>
+#include <cartobase/object/object.h>
 %End
 
 // %Import aims.sip
@@ -36,4 +37,18 @@ public slots:
 
 };
 
+
+QWidget* qWidget_fromObject( carto::GenericObject & );
+%MethodCode
+  try
+  {
+    sipRes = a0->value<QWidget *>();
+  }
+  catch( std::exception & e )
+  {
+    sipIsErr = 1;
+    PyErr_SetString( PyExc_RuntimeError, e.what() );
+    sipRes = 0;
+  }
+%End
 

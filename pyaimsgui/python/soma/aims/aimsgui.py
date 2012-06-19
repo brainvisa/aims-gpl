@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 #  This software and supporting documentation are distributed by
 #      Institut Federatif de Recherche 49
 #      CEA/NeuroSpin, Batiment 145,
@@ -33,3 +34,8 @@
 from soma.importer import ExtendedImporter
 ExtendedImporter().importInModule( '', globals(), locals(), 'aimsguisip',
   ['aimsguisip.aims'] )
+
+from soma import aims
+aims.convertersObjectToPython.update( { \
+  'P7QWidget' : aims.aimsguisip.qWidget_fromObject,
+} )
