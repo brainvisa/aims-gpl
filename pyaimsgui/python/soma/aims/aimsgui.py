@@ -33,7 +33,9 @@
 
 from soma.importer import ExtendedImporter
 ExtendedImporter().importInModule( '', globals(), locals(), 'aimsguisip',
-  ['aimsguisip.aims'] )
+  ['aimsguisip'] )
+ExtendedImporter().importInModule( 'soma.aims', globals(), locals(),
+                                  'aimsguisip', ['aimssip.aims'] )
 
 from soma import aims
 aims.convertersObjectToPython.update( { \
