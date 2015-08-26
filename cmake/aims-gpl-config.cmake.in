@@ -27,7 +27,7 @@ BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
 if( @DESIRED_QT_VERSION@ EQUAL 3 )
   find_package( Qt3 REQUIRED )
 else()
-  find_package( Qt4 COMPONENTS QtCore QtGui Qt3Support REQUIRED )
+  find_package( Qt4 COMPONENTS QtCore QtGui REQUIRED )
 endif()
 
 set( @PROJECT_NAME_UPPER@_DEFINITIONS )
