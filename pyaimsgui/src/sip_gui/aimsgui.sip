@@ -7,6 +7,10 @@
 #include <aims/qtmisc/initqapplication.h>
 %End
 
+%ModuleCode
+#include <pyaims/object/numconv.h>
+%End
+
 // %Import aims.sip
 // %Import qt/qtmod.sip
 
@@ -45,7 +49,7 @@ QCoreApplication* initializeQApplication( SIP_PYOBJECT argv,
       for( i=0; i<argc; ++i )
       {
         pyitem = PySequence_GetItem(a0,i);
-        if( !pyitem || !PyString_Check( pyitem ) )
+        if( !pyitem || !carto::PyStdString_Check( pyitem ) )
         {
           if( pyitem )
             Py_DECREF( pyitem );
@@ -57,7 +61,7 @@ QCoreApplication* initializeQApplication( SIP_PYOBJECT argv,
           break;
         }
 
-        sargv[i] = std::string( PyString_AsString( pyitem ) );
+        sargv[i] = carto::PyString_AsStdString( pyitem );
         argv[i] = const_cast<char *>( sargv[i].c_str() );
         Py_DECREF( pyitem );
       }
