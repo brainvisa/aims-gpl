@@ -26,8 +26,12 @@ set( @PROJECT_NAME_UPPER@_USE_FILE "${@PROJECT_NAME_UPPER@_BINARY_DIR}/share/@PR
 BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
 if( @DESIRED_QT_VERSION@ EQUAL 3 )
   find_package( Qt3 REQUIRED )
-else()
+elseif( @DESIRED_QT_VERSION@ EQUAL 4 )
   find_package( Qt4 COMPONENTS QtCore QtGui REQUIRED )
+elseif( @DESIRED_QT_VERSION@ EQUAL 5 )
+  find_package( Qt5Core REQUIRED )
+  find_package( Qt5Widgets REQUIRED )
+  find_package( Qt5Sql REQUIRED )
 endif()
 
 set( @PROJECT_NAME_UPPER@_DEFINITIONS )
