@@ -32,8 +32,8 @@
 # knowledge of the CeCILL license version 2 and that you accept its terms.
 
 from soma.importer import ExtendedImporter
-ExtendedImporter().importInModule( '', globals(), locals(), 'aimsguisip',
-  ['aimsguisip'] )
+ExtendedImporter().importInModule('', globals(), locals(),
+                                  'aimsguisip', ['aimsguisip'])
 ExtendedImporter().importInModule( 'soma.aims', globals(), locals(),
                                   'aimsguisip', ['aimssip.aims'] )
 
