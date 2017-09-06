@@ -20,6 +20,7 @@ exec_program( ${PYTHON_HOST_EXECUTABLE}
         -t "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub_pyaimsgui.py"
         -l
         -m "${QT_MOC_EXECUTABLE}"
+        -P "'${CMAKE_C_PREPROCESSOR}'"
   OUTPUT_VARIABLE _generatedSipFileList 
   RETURN_VALUE _returnValue )
 
