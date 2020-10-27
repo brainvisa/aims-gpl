@@ -32,13 +32,15 @@
 # knowledge of the CeCILL license version 2 and that you accept its terms.
 
 from __future__ import absolute_import
-from soma.importer import ExtendedImporter
-ExtendedImporter().importInModule('', globals(), locals(),
-                                  'aimsguisip', ['aimsguisip'])
-ExtendedImporter().importInModule( 'soma.aims', globals(), locals(),
-                                  'aimsguisip', ['aimssip.aims'] )
+from . import aimsguisip
+
+#from soma.importer import ExtendedImporter
+#ExtendedImporter().importInModule('', globals(), locals(),
+                                  #'soma.aims.aimsguisip', ['aimsguisip'])
+#ExtendedImporter().importInModule('soma.aims', globals(), locals(),
+                                  #'aimsguisip', ['aimssip.aims'] )
 
 from soma import aims
-aims.convertersObjectToPython.update( { \
-  'P7QWidget' : aims.aimsguisip.qWidget_fromObject,
-} )
+#aims.convertersObjectToPython.update( { \
+  #'P7QWidget' : aims.aimsguisip.qWidget_fromObject,
+#} )
