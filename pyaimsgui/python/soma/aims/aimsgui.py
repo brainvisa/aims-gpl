@@ -32,10 +32,12 @@
 # knowledge of the CeCILL license version 2 and that you accept its terms.
 
 from __future__ import absolute_import
+from . import aimsguisip
+
 from soma.importer import ExtendedImporter
 ExtendedImporter().importInModule('', globals(), locals(),
                                   'aimsguisip', ['aimsguisip'])
-ExtendedImporter().importInModule( 'soma.aims', globals(), locals(),
+ExtendedImporter().importInModule('soma.aims', globals(), locals(),
                                   'aimsguisip', ['aimssip.aims'] )
 
 from soma import aims
