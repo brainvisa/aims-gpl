@@ -2,7 +2,9 @@ cmake_minimum_required( VERSION 2.6 )
 find_package( brainvisa-cmake REQUIRED )
 BRAINVISA_PROJECT()
 
-BRAINVISA_FIND_PACKAGE( aims-free ${aims-gpl_VERSION} REQUIRED )
+# FIXME for an unknown reason the version check does not work iv version is 5.0.0 (but it works using 4.6.2 or 5.1.0, 0 seems to be a problem for cmake. So I remove the test for now.
+#BRAINVISA_FIND_PACKAGE( aims-free ${aims-gpl_VERSION} REQUIRED )
+BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
 if( NOT DESIRED_QT_VERSION )
   find_package( Qt REQUIRED )
 endif()
