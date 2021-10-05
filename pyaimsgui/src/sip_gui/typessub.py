@@ -7,7 +7,7 @@
 # This software is governed by the CeCILL license version 2 under
 # French law and abiding by the rules of distribution of free software.
 # You can  use, modify and/or redistribute the software under the 
-# terms of the CeCILL license version 2 as circulated by CEA, CNRS
+# terms of the CeCILL license version 2.1 as circulated by CEA, CNRS
 # and INRIA at the following URL "http://www.cecill.info". 
 #
 # As a counterpart to the access to the source code and  rights to copy,
@@ -28,7 +28,7 @@
 # same conditions as regards security.
 #
 # The fact that you are presently reading this means that you have had
-# knowledge of the CeCILL license version 2 and that you accept its terms.
+# knowledge of the CeCILL license version 2.1 and that you accept its terms.
 
 typessub.update( {
   'aims::QSqlGraphDatabase::CurrentGraphData' : \

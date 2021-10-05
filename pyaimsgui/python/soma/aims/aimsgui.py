@@ -5,7 +5,7 @@
 #      91191 Gif-sur-Yvette cedex
 #      France
 #
-# This software is governed by the CeCILL license version 2 under
+# This software is governed by the CeCILL license version 2.1 under
 # French law and abiding by the rules of distribution of free software.
 # You can  use, modify and/or redistribute the software under the 
 # terms of the CeCILL license version 2 as circulated by CEA, CNRS
@@ -29,7 +29,7 @@
 # same conditions as regards security.
 #
 # The fact that you are presently reading this means that you have had
-# knowledge of the CeCILL license version 2 and that you accept its terms.
+# knowledge of the CeCILL license version 2.1 and that you accept its terms.
 
 from __future__ import absolute_import
 from . import aimsguisip
