@@ -34,4 +34,3 @@
 todo = { 'aimsgui' : [ 'Void' ],
   'list' : [ 'aims::QSqlGraphDatabase::CurrentGraphData' ],
 }
-
