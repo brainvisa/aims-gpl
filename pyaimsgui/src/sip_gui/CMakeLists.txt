@@ -28,6 +28,7 @@ if( NOT _returnValue EQUAL 0 )
   message( SEND_ERROR "The sip generation from pyaimsgui templates with \"${AIMS-FREE_SIP_DIRECTORY}/maketemplates.py\" returned an error:\n${_generatedSipFileList}\n========================")
 endif( NOT _returnValue EQUAL 0 )
 
+
 BRAINVISA_ADD_SIP_PYTHON_MODULE( aimsguisip 
   soma/aims
   "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/aimsgui_VOID.sip"
