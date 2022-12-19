@@ -28,11 +28,12 @@ if( NOT _returnValue EQUAL 0 )
   message( SEND_ERROR "The sip generation from pyaimsgui templates with \"${AIMS-FREE_SIP_DIRECTORY}/maketemplates.py\" returned an error:\n${_generatedSipFileList}\n========================")
 endif( NOT _returnValue EQUAL 0 )
 
+file( GLOB _sipSources "${CMAKE_CURRENT_SOURCE_DIR}/*.sip" )
 
 BRAINVISA_ADD_SIP_PYTHON_MODULE( aimsguisip 
   soma/aims
   "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/aimsgui_VOID.sip"
-  SIP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/aimsgui.sip" ${_generatedSipFileList}
+  SIP_SOURCES ${_generatedSipFileList} ${_sipSources}
   SIP_INCLUDE  "${AIMS-FREE_SIP_DIRECTORY}" "${PYQT${DESIRED_QT_VERSION}_SIP_DIR}"
   SIP_INSTALL "${AIMS_RELATIVE_SIP_DIRECTORY}" )
 target_link_libraries( aimsguisip ${AIMS_PYAIMS_LIBRARIES} aimsgui )
