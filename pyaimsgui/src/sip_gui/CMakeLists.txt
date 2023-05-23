@@ -11,6 +11,10 @@ BRAINVISA_INSTALL( PROGRAMS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/
                    DESTINATION "${AIMS_RELATIVE_SIP_DIRECTORY}"
                    COMPONENT ${PROJECT_NAME}-dev )
 
+if( SIP_MODULE )
+  set( extra_defs "-D" "SIP_MODULE=\"${SIP_MODULE}\"" )
+endif()
+
 exec_program( ${PYTHON_HOST_EXECUTABLE}
   ARGS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/maketemplates.py"
         -i "${CMAKE_CURRENT_SOURCE_DIR}/generatedtypes.py"
@@ -21,6 +25,7 @@ exec_program( ${PYTHON_HOST_EXECUTABLE}
         -l
         -m "${QT_MOC_EXECUTABLE}"
         -P "'${CMAKE_C_PREPROCESSOR}'"
+        ${extra_defs}
   OUTPUT_VARIABLE _generatedSipFileList 
   RETURN_VALUE _returnValue )
 
