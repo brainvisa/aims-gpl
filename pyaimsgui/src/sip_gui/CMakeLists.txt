@@ -44,5 +44,5 @@ BRAINVISA_ADD_SIP_PYTHON_MODULE( aimsguisip
 target_link_libraries( aimsguisip ${AIMS_PYAIMS_LIBRARIES} aimsgui )
 
 BRAINVISA_INSTALL( TARGETS aimsguisip 
-                   DESTINATION python/soma/aims
+                   DESTINATION ${PYTHON_INSTALL_DIRECTORY}/soma/aims
                    COMPONENT ${PROJECT_NAME} )
