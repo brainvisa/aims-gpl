@@ -20,6 +20,10 @@ if( SIP_ABI )
        "SIP_ABI_MAJOR_VERSION=${SIP_ABI_MAJOR_VERSION}")
 endif()
 
+if( QT_MOC_EXECUTABLE )
+  set( MT_MOC_OPTS "-m" "${QT_MOC_EXECUTABLE}" )
+endif()
+
 exec_program( ${PYTHON_HOST_EXECUTABLE}
   ARGS "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/maketemplates.py"
         -i "${CMAKE_CURRENT_SOURCE_DIR}/generatedtypes.py"
@@ -28,7 +32,7 @@ exec_program( ${PYTHON_HOST_EXECUTABLE}
         -t "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub.py"
         -t "${CMAKE_BINARY_DIR}/${AIMS_RELATIVE_SIP_DIRECTORY}/typessub_pyaimsgui.py"
         -l
-        -m "${QT_MOC_EXECUTABLE}"
+        ${MT_MOC_OPTS}
         -P "'${CMAKE_C_PREPROCESSOR}'"
         ${extra_defs}
   OUTPUT_VARIABLE _generatedSipFileList 
