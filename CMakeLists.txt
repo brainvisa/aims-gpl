@@ -1,10 +1,10 @@
-cmake_minimum_required( VERSION 3.10 )
-find_package( brainvisa-cmake REQUIRED )
-BRAINVISA_PROJECT()
+if(NOT NO_BV_MAKER)
+  cmake_minimum_required( VERSION 3.10 )
+  find_package( brainvisa-cmake REQUIRED )
+  BRAINVISA_PROJECT()
+  BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
+endif()
 
-# FIXME for an unknown reason the version check does not work iv version is 5.0.0 (but it works using 4.6.2 or 5.1.0, 0 seems to be a problem for cmake. So I remove the test for now.
-#BRAINVISA_FIND_PACKAGE( aims-free ${aims-gpl_VERSION} REQUIRED )
-BRAINVISA_FIND_PACKAGE( aims-free REQUIRED )
 if( NOT DESIRED_QT_VERSION )
   find_package( Qt REQUIRED )
 endif()
@@ -51,4 +51,6 @@ add_definitions( "-DAIMSDATA_CLASS_NO_DEPREC_WARNING=1" )
 
 add_subdirectory( pyaimsgui )
 
-BRAINVISA_CREATE_CMAKE_CONFIG_FILES()
+if(NOT NO_BV_MAKER)
+  BRAINVISA_CREATE_CMAKE_CONFIG_FILES()
+endif()
